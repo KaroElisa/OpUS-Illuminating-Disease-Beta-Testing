@@ -278,8 +278,8 @@ Tunnel.prototype.createMesh = function () {
 
   // MESH STANDARD MATERIAL - HIGH REFLECTIVITY
 
-  var tunnelTexture = new THREE.TextureLoader().load('img/demo1/tunnelSized.jpg');
-  myAnimator = new TextureAnimator( tunnelTexture, 1, 23, 45, 55 ); // texture, #horiz, #vert, #total, duration.
+  var tunnelTexture = new THREE.TextureLoader().load('img/demo1/marble2.png');
+  myAnimator = new TextureAnimator( tunnelTexture, 1, 10, 45, 20 ); // texture, #horiz, #vert, #total, duration.
 
   this.tubeMaterial = new THREE.MeshStandardMaterial({
     metalness: 0.2,
@@ -834,7 +834,7 @@ Tunnel.prototype.light = function () {
       shininess: 20,
       opacity: 1,
       //metalness: 0.4,
-      //emissiveIntensity : 3,
+      emissiveIntensity : 3,
       map: textures.marble.texture,
       // //bumpMap: textures.stoneBump.texture,
     })
@@ -955,6 +955,8 @@ Tunnel.prototype.render = function () {
   // cylinder.position.x = 0;
   //  cylinder.position.y = -0.005;
   //  cylinder.position.z = 0.115;
+
+  // let cylinderYOffset = cylinder.position.y - 0.3
 
    cylinder.position.x = this.particleLight.position.x;
    cylinder.position.y = this.particleLight.position.y;
@@ -1145,7 +1147,7 @@ function TextureAnimator(texture, tilesHoriz, tilesVert, numTiles, tileDispDurat
 			var currentColumn = this.currentTile % this.tilesHorizontal;
 			texture.offset.x = currentColumn / (this.tilesHorizontal/8);
 			var currentRow = Math.floor( this.currentTile / this.tilesHorizontal );
-			texture.offset.y = currentRow / (this.tilesVertical/9);
+			texture.offset.y += 0.01; //currentRow / (this.tilesVertical/9);
 		}
 	};
 }		
