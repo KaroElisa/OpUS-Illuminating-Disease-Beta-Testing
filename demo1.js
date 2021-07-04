@@ -1,10 +1,10 @@
 //IMPORTS
 
 //import * as THREE from './js/vendors/three.module.js';
-import Stats from './js/stats.module.js';
-import {
-  GUI
-} from './build/dat.gui.module.js';
+//import Stats from './js/stats.module.js';
+//import {
+//  GUI
+//} from './build/dat.gui.module.js';
 //import { OrbitControls } from './js/OrbitControls.js';
 // import { HDRCubeTextureLoader } from './js/HDRCubeTextureLoader.js';
 // import { RGBMLoader } from './js/RGBMLoader.js';
@@ -18,25 +18,20 @@ var wh = window.innerHeight;
 var ww2 = ww * 0.5,
   wh2 = wh * 0.5; // Save half window dimension
 
+var delta;
 
-var rotationTest = Math.PI/9;
-
-var offsetTest = 0.0;
-
-var myAnimator, myAlphaAnimator;
-
-var probeX, probeY, probeZ;
+var myAnimator;
 
 // TEXTURE
 
 var clock = new THREE.Clock();
+var myTime = clock.getElapsedTime();
 var time = 0;
 
 // TUNNEL VARIABLES
 
 var radialSegments = 70;
 var radiusShift = 0.02;
-
 
 // MOUSE TRACK DIVISIONS
 
@@ -87,14 +82,23 @@ var hue4 = 0.722222222;
 var sat4 = 0.529;
 var light4 = 0.367;
 
-//VISUAL NOISE SHIFT
-var noiseX0 = 4.0;
-var noiseY0 = 4.0;
-var noiseZ0 = 2.0;
+//VISUAL NOISE SHIFT (prev.)
+// var noiseX0 = 4.0;
+// var noiseY0 = 4.0;
+// var noiseZ0 = 2.0;
 
-var noiseX5 = 1.0;
-var noiseY5 = 1.0;
-var noiseZ5 = 0.2;
+// var noiseX5 = 1.0;
+// var noiseY5 = 1.0;
+// var noiseZ5 = 0.2;
+
+//VISUAL NOISE SHIFT (now)
+var noiseX0 = 1.0;
+var noiseY0 = 1.0;
+var noiseZ0 = 0.5;
+
+var noiseX5 = 0.03;
+var noiseY5 = 0.03;
+var noiseZ5 = 0.02;
 
 //AUDIO SHIFT
 var startFrequency = 100;
@@ -106,12 +110,80 @@ let cell;
 
 var cylinder;
 
+//STENT STUFF
+
+var stentAnimationFlag = 0;
+
+var segments = 3;
+var latheRadius = 0.009;
+var minimumOculus = 0.009;
+var blockageSegments = 16;
+var blockageRadius = 0.021;
+var blockageCounter = 0;
+var rectangleFlag = 1;
+var mouseFlag = 0;
+var doneFlag = 0;
+var latheFlag = 0;
+var clickFlag = 0;
+var textRemoveFlag = 0;
+
+var Tstart = 10;
+
+
+//OBSTRUCTION STUFF
+
+var modeFlag = 1;
+var obstructionShift = 0.05;
+var widthSegments = 23;
+var heightSegments = 23;
+
+// LOAD TEXTURES 
+// (Leads to checkTextures();)
+var textures = {
+  "stone": {
+    url: "img/demo1/alphaMap10.png"
+  },
+  "stoneBump": {
+    url: "img/demo1/tunnelSized.jpg"
+  },
+  "marble": {
+    url: "img/demo1/marbleTextureNoOpacity.png"
+  }
+};
+
+// Create a new loader
+var loader = new THREE.TextureLoader();
+// Prevent crossorigin issue
+loader.crossOrigin = "Anonymous";
+// Load all textures
+for (var name in textures) {
+  (function (name) {
+    loader.load(textures[name].url, function (texture) {
+      textures[name].texture = texture;
+      checkTextures();
+    });
+  })(name)
+}
+var texturesLoaded = 0;
+
+// Checks if textures are done loading 
+// (leads to Tunnel(cell);)
+function checkTextures() {
+  texturesLoaded++;
+  if (texturesLoaded === Object.keys(textures).length) {
+    document.body.classList.remove("loading");
+    // When all textures are loaded, init the scene
+    window.tunnel = new Tunnel();
+  }
+};
 
 // CONSTRUCTOR FUNCTION - (not looped)
-
+// (leads to init(), )
 function Tunnel(cell) {
-  
-  window.cell = cell.children[0];
+
+  console.log("at tunnel");
+
+//console.log(this.startFlag);
 
   // Init the scene and the
   this.init();
@@ -119,24 +191,36 @@ function Tunnel(cell) {
   // Create the shape of the tunnel
   this.createMesh();
 
-  //this.curveGeo();
+ // this.popUpStent();
 
   //CylinderGeometry(radiusTop : Float, radiusBottom : Float, height : Float, radialSegments : Integer, heightSegments : Integer, openEnded : Boolean, thetaStart : Float, thetaLength : Float)
-const geometry = new THREE.CylinderGeometry( 0.0005, 0.0005, 0.08, 32, 15, false, 0, Math.PI*2 );
-const material = new THREE.MeshBasicMaterial( {color: 0x000000} );
-cylinder = new THREE.Mesh( geometry, material );
+  const geometry = new THREE.CylinderGeometry( 0.0005, 0.0005, 0.08, 32, 15, false, 0, Math.PI*2 );
+  const material = new THREE.MeshBasicMaterial( {color: 0x000000} );
+  
+  cylinder = new THREE.Mesh( geometry, material );
 
-cylinder.rotation.x = (90*Math.PI)/180;
+  cylinder.rotation.x = (90*Math.PI)/180;
+  cylinder.position.z = 0.23;
 
-cylinder.position.z = 0.23;
+  //PointLight( color : Integer, intensity : Float, distance : Number, decay : Float )
 
- //this.scene.add( cylinder );
+  var backLight = new THREE.PointLight(0xffffff, 0.6, 2, 9);
+  backLight.position.x = 0;
+  backLight.position.y = 0;
+  backLight.position.z = 0.3;
 
-  // Create the shape of the guideRail
-  //this.createTrackMesh();
+  var backLight2 = new THREE.PointLight(0xffffff, 0.2, 2, 9);
+  backLight2.position.x = 0;
+  backLight2.position.y = 0;
+  backLight2.position.z = 1;
+
+  this.scene.add(backLight2);
+  this.scene.add(backLight);
 
   // Mouse events & window resize
   this.handleEvents();
+
+  //this.latheCreate();
 
   // Start loop animation - necessary to kick it off
   window.requestAnimationFrame(this.render.bind(this));
@@ -180,16 +264,12 @@ Tunnel.prototype.init = function () {
 
   this.addParticle();
 
-  // set up controls
-  //gui(uniforms);
-
 };
 
 // AUDIO FUNCTIONS - (not looped)
 
 Tunnel.prototype.audioStart = function () {
 
-  var analyser;
   const listener = new THREE.AudioListener();
   this.camera.add(listener);
 
@@ -212,7 +292,7 @@ Tunnel.prototype.audioStart = function () {
 
     sound.setBuffer(buffer);
     sound.setLoop(true);
-    sound.setVolume(10);
+    sound.setVolume(8);
     sound.play();
 
   });
@@ -231,10 +311,6 @@ Tunnel.prototype.addParticle = function() {
     var particle = new Particle(this.scene);
     this.particles.push(particle);
     this.particlesContainer.add(particle.mesh);
-  // for (var i = 0; i < (isMobile ? 70 : 150); i++) {
-  //   var particle = new Particle(this.scene);
-  //   this.particles.push(particle);
-  //   this.particlesContainer.add(particle.mesh);
   }
 };
 
@@ -270,7 +346,8 @@ Tunnel.prototype.createMesh = function () {
   // Create a tube geometry based on the curve
 
   //TubeGeometry(path : Curve, tubularSegments : Integer, radius : Float, radialSegments : Integer, closed : Boolean)
-  this.tubeGeometry = new THREE.TubeGeometry(this.curve, 70, radiusShift, 50, false);
+  this.tubeGeometry = new THREE.TubeGeometry(this.curve, 70, 0.02, 50, false);
+  
   // Create a mesh based on the tube geometry and its material
 
 
@@ -278,8 +355,9 @@ Tunnel.prototype.createMesh = function () {
 
   // MESH STANDARD MATERIAL - HIGH REFLECTIVITY
 
-  var tunnelTexture = new THREE.TextureLoader().load('img/demo1/marble2.png');
+  var tunnelTexture = new THREE.TextureLoader().load('img/demo1/marbleTextureNoOpacity.png');
   myAnimator = new TextureAnimator( tunnelTexture, 1, 10, 45, 20 ); // texture, #horiz, #vert, #total, duration.
+
 
   this.tubeMaterial = new THREE.MeshStandardMaterial({
     metalness: 0.2,
@@ -296,7 +374,7 @@ Tunnel.prototype.createMesh = function () {
   this.tubeMesh = new THREE.Mesh(this.tubeGeometry, this.tubeMaterial);
 
   // ADD AUDIO
-  this.tubeMesh.add(this.sound);
+ // this.tubeMesh.add(this.sound);
 
   // TEXTURE TUNNEL
 
@@ -311,7 +389,7 @@ Tunnel.prototype.createMesh = function () {
     },
     speed: {
       type: "f",
-      value: -0.1
+      value: -0.02
     },
     time: {
       type: "f",
@@ -335,7 +413,7 @@ Tunnel.prototype.createMesh = function () {
   });
 
   // CylinderBufferGeometry(radiusTop, radiusBottom, height, radiusSegments, heightSegments, openEnded, thetaStart, thetaLength)
-  this.tubeReflectorGeometry = new THREE.CylinderBufferGeometry(0.044, 0.05, 20, 23, 11, false);
+  this.tubeReflectorGeometry = new THREE.CylinderBufferGeometry(0.0042, 0.0042, 20, 23, 11, false);
 
   //this.tubeReflectorGeometry = new THREE.CylinderBufferGeometry(0.003, 0.003, 0.05, 23, 11, true);
 
@@ -346,7 +424,7 @@ Tunnel.prototype.createMesh = function () {
   //PUSH TUBES ONTO SCENE
 
   this.scene.add(this.tubeMesh);
-  this.scene.add(this.tubeReflector)
+  this.scene.add(this.tubeReflector);
 
   // Clone the original tube geometry for the mouse motion
   this.tubeGeometry_o = this.tubeGeometry.clone();
@@ -368,13 +446,6 @@ Tunnel.prototype.createMesh = function () {
   // //(firstNumber:number of divisions in depth, secondNumber:ring divisions)
    //this.tubeMaterial.map.repeat.set(10, 1);
 
-  //this.tubeMaterial.alphaMap.magFilter = THREE.NearestFilter;
-  this.tubeMesh.material.alphaMap.wrapS = THREE.RepeatWrapping;
-  this.tubeMesh.material.alphaMap.wrapT = THREE.RepeatWrapping;
-  //this.tubeMaterial.alphaMap.repeat.set(30, 6);
-  //this.tubeMaterial.alphaMap.repeat.y = 1;
-
-
   //PointLight( color : Integer, intensity : Float, distance : Number, decay : Float )
   var endOfTunnelLight = new THREE.PointLight(0xffffff, 0.8, 7, 9);
   endOfTunnelLight.position.x = 0;
@@ -387,75 +458,182 @@ Tunnel.prototype.createMesh = function () {
 
 };
 
-// CREATE TUNNEL
+function TextureAnimator(texture, tilesHoriz, tilesVert, numTiles, tileDispDuration) 
+{	
+	// note: texture passed by reference, will be updated by the update function.
+		
+	this.tilesHorizontal = tilesHoriz;
+	this.tilesVertical = tilesVert;
+	// how many images does this spritesheet contain?
+	//  usually equals tilesHoriz * tilesVert, but not necessarily,
+	//  if there at blank tiles at the bottom of the spritesheet. 
+	this.numberOfTiles = numTiles;
+	texture.wrapS = texture.wrapT = THREE.RepeatWrapping; 
+	texture.repeat.set( 1 / this.tilesHorizontal, 1 / this.tilesVertical );
 
-Tunnel.prototype.createTrackMesh = function () {
+	// how long should each image be displayed?
+	this.tileDisplayDuration = tileDispDuration;
 
-  // CREATE THE GEOMETRY
-  
-  //POSSIBLY ADD PERLIN NOISE ALGORITHM TO "PULSE" THE TUNNEL LIKE A HEARTBEAT
-  
-    // Empty array to store the points along the path
-    var trackPoints = [];
-  
-    // Define points along Z axis to create a curve
-    for (var i = 0; i < 5; i += 1) {
-      trackPoints.push(new THREE.Vector3(0, 0, 0.2 * (i / 4)));
-    }
-  
-    // Set custom Y position for the last point
-    trackPoints[4].x = this.particleLight.position.x;
-    trackPoints[4].y =  this.particleLight.position.y;
-    trackPoints[4].z = this.particleLight.position.z-0.2;
-  
-    // Create a curve based on the points and define curve type
-    this.trackCurve = new THREE.CatmullRomCurve3(trackPoints);
-    // [
-    //   //new THREE.Vector3( this.particleLight.x, this.particleLight.y, this.particleLight.z ),
-    //   new THREE.Vector3( -0.10, 0, 0.10 ),
-    //   new THREE.Vector3( -0.5, 0.5, 0.5 ),
-    //   new THREE.Vector3( 0, 0, 0 ),
-    //   new THREE.Vector3( 0.5, -0.5, 0.5 ),
-    //   new THREE.Vector3( 0.10, 0, 0.10 )
-    // ]);
-  
-    // Empty geometry
-    var trackGeometry = new THREE.Geometry();
-    // Create vertices based on the curve
-    trackGeometry.vertices = this.trackCurve.getPoints(70);
+	// how long has the current image been displayed?
+	this.currentDisplayTime = 0;
 
-    // Create a line from the points with a basic line material
-    this.trackSplineMesh = new THREE.Line(trackGeometry, new THREE.LineBasicMaterial());
-  
-    // Create a tube geometry based on the curve
-  
-    //TubeGeometry(path : Curve, tubularSegments : Integer, radius : Float, radialSegments : Integer, closed : Boolean)
-    this.trackTubeGeometry = new THREE.TubeGeometry(this.trackCurve, 70, 0.0001, 60, false);
-    // Create a mesh based on the tube geometry and its material
-  
-  
-    // MOVING TUNNEL
-  
-    // MESH STANDARD MATERIAL - HIGH REFLECTIVITY
-  
-    this.trackMaterial = new THREE.MeshStandardMaterial({
-      metalness: 0.2,
-      roughness: 0.5,
-      color: 0x000000,
-      wireframe: false,
-      side: THREE.DoubleSide,
-    });
-  
-    this.trackMesh = new THREE.Mesh(this.trackTubeGeometry, this.trackMaterial);
+	// which image is currently being displayed?
+	this.currentTile = 0;
+		
+	this.update = function( milliSec )
+	{
+		this.currentDisplayTime += milliSec;
+		while (this.currentDisplayTime > this.tileDisplayDuration)
+		{
+			this.currentDisplayTime -= this.tileDisplayDuration;
+			this.currentTile++;
+			if (this.currentTile == this.numberOfTiles)
+				this.currentTile = 0;
+			var currentColumn = this.currentTile % this.tilesHorizontal;
+			texture.offset.x = currentColumn / (this.tilesHorizontal/8);
+			var currentRow = Math.floor( this.currentTile / this.tilesHorizontal );
+			texture.offset.y += 0.01; //currentRow / (this.tilesVertical/9);
+      //console.log("updating");
+		}
+	};
 
-    //PUSH TUBES ONTO SCENE
-  
-    this.scene.add(this.trackMesh);
-  
-    // Clone the original tube geometry for the mouse motion
-    this.trackTubeGeometry_o = this.trackTubeGeometry.clone();
-  
-  };
+	// this.noUpdate = function( milliSec )
+	// {
+	// 	this.currentDisplayTime += milliSec;
+	// 	while (this.currentDisplayTime > this.tileDisplayDuration)
+	// 	{
+	// 		this.currentDisplayTime -= this.tileDisplayDuration;
+	// 		this.currentTile = 0;
+	// 		if (this.currentTile == this.numberOfTiles)
+	// 			this.currentTile = 0;
+	// 		var currentColumn = this.currentTile % this.tilesHorizontal;
+	// 		texture.offset.x = currentColumn / (this.tilesHorizontal/8);
+	// 		var currentRow = Math.floor( this.currentTile / this.tilesHorizontal );
+	// 		texture.offset.y += 0.01; //currentRow / (this.tilesVertical/9);
+  //     console.log("not updating");
+	// 	}
+	// };
+
+}		
+
+// LIGHTS UPDATE FUNCTION - (INITIALISATION - NOT LOOPED, POSITION- Looped)
+
+Tunnel.prototype.light = function () {
+  this.particleLight = new THREE.Mesh(
+    //SphereGeometry(radius : Float, widthSegments : Integer, heightSegments : Integer, phiStart : Float, phiLength : Float, thetaStart : Float, thetaLength : Float)
+    new THREE.SphereGeometry(0.003, 40, 40),
+    new THREE.MeshPhongMaterial({
+      color: 0xffffff,
+     // specular: 0xffffff,
+      emissive: 0xffffff,
+      shininess: 20,
+      opacity: 1,
+      //metalness: 0.4,
+      emissiveIntensity : 3,
+      //map: textures.marble.texture,
+      // //bumpMap: textures.stoneBump.texture,
+    })
+    //new THREE.MeshBasicMaterial( { color: 0xffffff } )
+  );
+
+  this.probeHull = new THREE.Mesh(
+    //SphereGeometry(radius : Float, widthSegments : Integer, heightSegments : Integer, phiStart : Float, phiLength : Float, thetaStart : Float, thetaLength : Float)
+    new THREE.SphereGeometry(0.004, 32, 32, 0, 2.7, 0, 4),
+    new THREE.MeshPhongMaterial({
+      color: 0xfff000,
+      specular: 0x666666,
+      shininess: 20,
+      opacity: 0.5,
+      transparent: true,
+      map: textures.marble.texture,
+      //bumpMap: textures.stoneBump.texture,
+    })
+    //new THREE.MeshBasicMaterial( { color: 0xffffff } )
+  );
+
+  //this.probeHull.rotation.z = (90 * Math.PI) / 180;
+
+  this.scene.add(this.particleLight);
+  this.scene.add(this.probeHull);
+
+  //PointLight( color : Integer, intensity : Float, distance : Number, decay : Float )
+
+  this.flashLight = new THREE.PointLight(0xffffff, 1.0, 0.3, 6)
+
+  //particleLight.add( new THREE.DirectionalLight (0xffffff, 0.5))
+  this.particleLight.add(this.flashLight);
+
+  //   const targetObject = new THREE.Object3D();
+  // scene.add(targetObject);
+
+  // light.target = targetObject;
+
+}
+
+//DRAW THE INITIAL LATHES - (not looped)
+
+Tunnel.prototype.drawStent = function (segments, phiStart, phiLength, latheRadius) {
+
+  const lathePoints = [];
+
+  for ( let i = 0; i < 10; i ++ ) {
+
+    //x, y
+    //when i = 9, you want the argument of the sine to be PI/2
+    //Math.sin( i * width) * shift + ( the place where the oculus opens ), 
+    //( i - ? ) * squatness of the shape) );
+
+    lathePoints.push( new THREE.Vector2( Math.sin( i * ((Math.PI/2) / 9) ) * 0.18 + latheRadius, ( i - 5 ) * 0.007 ) );
+  }
+
+  //LatheGeometry(points : Array, segments : Integer, phiStart : Float, phiLength : Float)
+
+  this.latheGeometry = new THREE.LatheGeometry( lathePoints, segments, phiStart, phiLength );
+
+  this.latheDepthGeometry = new THREE.LatheGeometry( lathePoints, segments, phiStart, phiLength );
+
+
+  //console.log(latheVertices);
+
+  var tunnelTexture2 = new THREE.TextureLoader().load('img/demo1/marbleTextureNoOpacity.png');
+  //myAnimator = new TextureAnimator( tunnelTexture2, 1, 10, 45, 20 ); // texture, #horiz, #vert, #total, duration.
+
+  this.latheMaterial = new THREE.MeshStandardMaterial({
+    metalness: 0.2,
+    roughness: 0.5,
+    color: new THREE.Color("hsl(129, 36%, 17%)"),
+    wireframe: false,
+    side: THREE.DoubleSide,
+    alphaTest: 0.2,
+    transparent: false,  //this gives the hazy effect when it hits the greys
+    map: tunnelTexture2,
+    //alphaMap: textures.stone.texture,
+  });
+
+  //const latheMaterial = new THREE.MeshBasicMaterial( { color: 0xffff00 } );
+  this.lathe = new THREE.Mesh( this.latheGeometry, this.latheMaterial );
+
+  this.depthLathe = new THREE.Mesh( this.latheDepthGeometry, this.latheMaterial );
+
+
+// the position stuff
+ this.lathe.position.x = 0;
+ this.lathe.position.y = 0;
+ this.lathe.position.z = 0.42;
+
+ this.lathe.rotation.x = -(90 * Math.PI) / 180;
+
+ this.depthLathe.position.x = 0;
+ this.depthLathe.position.y = 0;
+ this.depthLathe.position.z = 0.39;
+
+ this.depthLathe.rotation.x = -(90 * Math.PI) / 180;
+
+
+ //add everything to the scene
+  //this.scene.add( this.lathe );
+  this.scene.add( this.depthLathe );
+}
 
 // INITIALISE EVENT HANDLING FUNCTION - (not looped)
 
@@ -463,6 +641,12 @@ Tunnel.prototype.handleEvents = function () {
 
   // I think what's happening here is that the event is a seperate thing outside the main (noloop)/(loop) structure that conditionally calls the resize and mouse positions after it notices that 
   // https://threejs.org/docs/#api/en/core/EventDispatcher.addEventListener
+
+  //.addEventListener ( type : String, listener : Function ) : null
+    //type - The type of event to listen to.
+    //listener - The function that gets called when the event is fired.
+
+
   // When user resize window
   window.addEventListener("resize", this.onResize.bind(this), false);
 
@@ -474,13 +658,23 @@ Tunnel.prototype.handleEvents = function () {
     false
   );
 
-  document.body.addEventListener(
-    "spaceBarPressed",
-    this.spaceBarPressed,
-    false
-  )
+  document.body.addEventListener( 
+    'mousedown', 
+    this.onDocumentMouseDown.bind(this), 
+    false 
+    );
 
-};
+  //document.querySelector('startButton').addEventListener('click', function() {
+      //var context = new AudioContext();
+      //context.resume();
+      //createTextures();
+   // });
+
+  // document.getElementById('startButton').addEventListener("buttonPress", function() {
+  //   console.log("hi"); 
+  // });​
+
+}
 
 // RESIZE TO FIT SCREEN FUNCTION - (looped)
 
@@ -500,6 +694,150 @@ Tunnel.prototype.onResize = function () {
   this.renderer.setSize(ww, wh);
 };
 
+//The function that allows for the stent interaction - (looped)
+//insert stent redraw command
+
+Tunnel.prototype.onDocumentMouseDown = function (event){
+
+  //INTERACTION INTRODUCTION
+      //1. Add a "click to remove" statement
+      //2. Remove the existing stents
+      //3. Increase the segments and radii
+      //4. Redraw the stent with the new parameters
+
+     // this.audioStart();
+
+    // var audioCtx = new AudioContext();
+    // audioCtx.resume();
+
+    //RANDOM INTERACTIONS
+      modeFlag = Math.floor(Math.random(0, 1));
+      console.log(modeFlag);
+
+if (modeFlag == 0){
+if (clickFlag == 1 && mouseFlag == 1){
+
+console.log("Hi, mouseFlag I'm here");
+
+if (textRemoveFlag == 0) {
+
+//this.stentInstructionsText = document.querySelector('#stentInstructions');
+//this.stentInstructionsText.remove();
+this.stentInstructionsText.style.opacity = "0.0";
+textRemoveFlag = 1;
+
+}
+
+    this.scene.remove(this.plane);
+   // this.scene.remove(this.depthLathe);
+
+  if (blockageRadius<0.02){
+   // myAnimator.noUpdate();
+    this.tubeReflector.material.uniforms.speed.value = 0;
+
+    this.scene.remove( this.depthLathe );
+
+    blockageSegments += 1;
+    blockageRadius += 0.0009;
+
+    this.drawStent(blockageSegments, 0, 6.3, blockageRadius);
+
+  //RESUME COMMANDS:
+      //1. Get rid of lathes so they don't pop up randomly on the edges
+      //2. Resume conveyor belt animation
+
+    //console.log(latheRadius);
+
+  }else if (blockageRadius > 0.02) {
+   // this.scene.remove( this.lathe );
+    this.scene.remove(this.depthLathe);
+    this.tubeReflector.material.uniforms.speed.value = -0.1;
+    myAnimator.update();
+    doneFlag = 1;
+
+    //Reset the animated beginning and the pop up for the next round
+   // segments = 16;
+   // latheRadius = 0.021;
+
+   blockageSegments = 16;
+   blockageRadius = 0.021;
+   blockageCounter = 0;
+   clickFlag = 0;
+
+  }
+
+}
+} else if (modeFlag == 1){
+
+  if (clickFlag == 1 && mouseFlag == 1){
+
+    console.log("Hi, sphere mouseFlag I'm here");
+    
+    if (textRemoveFlag == 0) {
+    
+    //this.stentInstructionsText = document.querySelector('#stentInstructions');
+    //this.stentInstructionsText.remove();
+    this.stentInstructionsText.style.opacity = "0.0";
+    textRemoveFlag = 1;
+    
+    }
+    
+        this.scene.remove(this.plane);
+       // this.scene.remove(this.depthLathe);
+    
+      if (obstructionShift<0.04){
+
+        this.scene.remove(this.obstructionMesh)
+
+        //draw the mesh
+         this.obstructionGeometry = new THREE.SphereGeometry( 0.02, widthSegments, heightSegments );
+         this.obstructionMaterial = new THREE.MeshBasicMaterial({
+           color: new THREE.Color("hsl(129, 36%, 17%)"),
+           wireframe:false,
+         });
+         this.obstructionMesh = new THREE.Mesh( this.obstructionGeometry, this.obstructionMaterial);
+         this.obstructionMesh.position.z = 0.5;
+         this.obstructionMesh.position.x = obstructionShift;
+       
+         latheFlag = 1;            //this is to avoid redrawing every time it loops
+         blockageCounter += 1;     //adds time
+         obstructionShift+= 0.001;
+   
+         console.log(obstructionShift);
+         //heightSegments+=1; //increases height segments
+         //widthSegments+=1;  //increases width segments
+       
+         this.scene.add(this.obstructionMesh);
+    
+      //RESUME COMMANDS:
+          //1. Get rid of lathes so they don't pop up randomly on the edges
+          //2. Resume conveyor belt animation
+    
+        //console.log(latheRadius);
+    
+      }else if (obstructionShift > 0.04) {
+       // this.scene.remove( this.lathe );
+        this.scene.remove(this.obstructionGeometry);
+        this.tubeReflector.material.uniforms.speed.value = -0.1;
+        myAnimator.update();
+        doneFlag = 1;
+    
+        //Reset the animated beginning and the pop up for the next round
+       // segments = 16;
+       // latheRadius = 0.021;
+    
+       blockageSegments = 16;
+       blockageRadius = 0.021;
+       blockageCounter = 0;
+       clickFlag = 0;
+    
+      }
+
+}
+
+}
+}
+
 // UPDATE THE MOUSE POSITIONS - (looped)
 
 Tunnel.prototype.onMouseMove = function (e) {
@@ -508,36 +846,282 @@ Tunnel.prototype.onMouseMove = function (e) {
   this.mouse.target.x = (e.clientX - ww2) / ww2;
   this.mouse.target.y = (wh2 - e.clientY) / wh2;
 
-  //console.log("X:" + this.mouse.target.x);
-  //console.log("Y:" + this.mouse.target.y);
+  //this.setColor();
 
 };
 
-// CHANGE SPACEBAR STATE - (not yet added)
+function Particle(scene, burst) {
+        var radius = Math.random() * 0.003 + 0.0003;
+      
+        var changeRad = Math.random()*0.9;
+        var changeWidthSeg = Math.floor(Math.random()*20);
+      
+        //SphereGeometry(radius : Float, widthSegments : Integer, heightSegments : Integer, phiStart : Float, phiLength : Float, thetaStart : Float, thetaLength : Float)
+        var geom = new THREE.SphereGeometry(changeRad, changeWidthSeg, 32, 0, 6.3, 0, 3.1);
+        //var geom = cell.geometry;
+        var range = 234;   //range of colours allowed
+        var offset = burst ? 200 : 350;
+        var saturate = Math.floor(Math.random()*20 + 65);
+        var light = burst ? 20 : 56;
+        this.color = new THREE.Color("hsl(" + (Math.abs(Math.random() * range - 200)) + ","+saturate+"%,"+light+"%)");
+        var mat = new THREE.MeshPhongMaterial({
+          color: this.color,
+          map: textures.marble.texture
+          // shading: THREE.FlatShading
+        });
+        this.mesh = new THREE.Mesh(geom, mat);
+        this.mesh.scale.set(radius, radius, radius);
+        //this.mesh.radius = (Math.random()*0.4);
+        //this.mesh.widthSegments = (Math.random)*6;
+        this.mesh.scale.z += (Math.random()-0.5)*0.001;
+        this.mesh.position.set(0, 0, 1.5);
+        this.percent = burst ? 0.2 : Math.random();
+        this.burst = burst ? true : false;
+        this.offset = new THREE.Vector3((Math.random() - 0.5) * 0.025, (Math.random() - 0.5) * 0.025, 0);
+      
+        //This multiplied number determines the max value for speed
+        this.speed = Math.random() * 9; // + 0.0002;
+        if (this.burst) {
+          this.speed += 0.003;
+          this.mesh.scale.x *= 1.4;
+          this.mesh.scale.y *= 1.4;
+          this.mesh.scale.z *= 1.4;
+        }
+        this.rotate = new THREE.Vector3(-Math.random() * 0.1 + 0.01, 0, Math.random() * 0.01);
+      
+        this.pos = new THREE.Vector3(0, 0, 0);
+};
 
-Tunnel.prototype.spaceBarPressed = function (event) {
-  var keyCode = event.which;
+Particle.prototype.update = function(tunnel) {
+      
+        this.percent += this.speed * (this.burst ? 1 : tunnel.speed);
+      
+        this.pos = tunnel.curve.getPoint(1 - (this.percent % 1)).add(this.offset);
+        this.mesh.position.x = this.pos.x;
+        this.mesh.position.y = this.pos.y;
+        this.mesh.position.z = this.pos.z;
+        this.mesh.rotation.x += this.rotate.x;
+        this.mesh.rotation.y += this.rotate.y;
+        this.mesh.rotation.z += this.rotate.z;
+      
+        this.mesh.position.z -= 0.02;
+      
+};
 
-  // IF SPACEBAR IS PRESSED, EXPLORE
-  if (keyCode == 32) {
-    this.camera.rotation.x += 0.002 * ( -this.mouse.target.y - this.camera.rotation.x );
-    this.camera.rotation.y += 0.002 * ( -this.mouse.target.x - this.camera.rotation.y );
-  } 
-  
-  //
-  
-  else {
-    this.mouse.position.x += (this.mouse.target.x - this.mouse.position.x) / 100;
-    this.mouse.position.y += (this.mouse.target.y - this.mouse.position.y) / 100;
-  
-    // Rotate Z & Y axis
-    this.camera.rotation.z = this.mouse.position.x * 0.02;
-    this.camera.rotation.y = Math.PI - this.mouse.position.x * 0.006;
-  
-    // Move a bit the camera horizontally & vertically
-    this.camera.position.x = this.mouse.position.x * 0.01;
-    this.camera.position.y = -this.mouse.position.y * 0.01;
+// RENDER FUNCTION - (looped)
+Tunnel.prototype.render = function () {
+
+  //SPACEBAR NOT PRESSED - DEFAULT STATE
+  // Update material offset
+  //this is the thing that makes the walls look like they're moving towards you
+  //this.updateMaterialOffset();
+
+ // let stentFlag = 1;
+
+// if ((THREE.Clock() - clock) > 10){
+ //}
+
+  //this will get changed when the animation changes
+  delta = clock.getDelta();
+
+	//var delta = clock.getDelta(); 
+
+ // console.log(clock.elapsedTime);
+
+//	myAlphaAnimator.update(-(100 * delta));
+	myAnimator.update(200 * delta);
+
+  //console.log(clock.getElapsedTime() - myTime);
+ //console.log(myTime);
+ //console.log(clock.getElapsedTime());
+
+
+ if(modeFlag == 0){
+
+  if (clock.getElapsedTime() - myTime > Tstart){
+    //console.log("I'm in!")
+
+    if (latheFlag == 0){
+
+      this.scene.remove(this.depthLathe);
+      this.drawStent(blockageSegments, 0, 6.3, blockageRadius);
+
+      latheFlag = 1;            //this is to avoid redrawing every time it loops
+      blockageCounter += 1;     //adds time
+      blockageSegments -= 1;    //adds segments
+      blockageRadius -= 0.0009; //subtracts radius
+    }
+    
+    if (clock.getElapsedTime() - myTime > Tstart + blockageCounter){
+      if (blockageSegments>2){
+      latheFlag = 0;
+      }
+    }
+
+    if (blockageSegments == 2  && rectangleFlag == 1){
+
+      this.tubeReflector.material.uniforms.speed.value = 0;
+
+      //The Dark Plane
+
+      this.planeGeometry = new THREE.PlaneGeometry( 1, 1, 2, 2 );
+      this.planeMaterial = new THREE.MeshBasicMaterial( {
+        color: 0x000000,
+        transparent: true,
+        opacity: 0.8,
+        side: THREE.DoubleSide
+      } );
+
+      this.plane = new THREE.Mesh( this.planeGeometry, this.planeMaterial );
+     
+      this.plane.position.z = 0.03;
+      this.plane.position.x = 0;
+      this.plane.rotateZ( Math.PI / 2);
+     
+      this.scene.add(this.plane);
+
+      //INSERT TEXT HERE
+      this.stentInstructionsText = document.getElementById("stentInstructions");
+      //this.instructionPopUp.add(),
+      this.stentInstructionsText.style.opacity = "1.0";
+
+      mouseFlag = 1;
+      doneFlag = 1;
+      latheFlag = 0;
+      rectangleFlag = 1;
+      clickFlag = 1;
+
+
+    }
+
+    //THIS IS WHERE THE CODE REFERENCES THE DONE FLAG SECTION
+    
+    if (doneFlag == 1){
+      //clock = clock;
+      myTime = clock.getElapsedTime();
+      textRemoveFlag = 0;
+      doneFlag = 0;
+    }
+
   }
+} else if (modeFlag == 1){
+
+  if (clock.getElapsedTime() - myTime > Tstart){
+    //console.log("I'm in!")
+
+    if (latheFlag == 0){
+
+      this.scene.remove(this.obstructionMesh)
+
+     //draw the mesh
+      this.obstructionGeometry = new THREE.SphereGeometry( 0.02, widthSegments, heightSegments );
+      this.obstructionMaterial = new THREE.MeshBasicMaterial({
+        color: new THREE.Color("hsl(129, 36%, 17%)"),
+        wireframe:false,
+        flatShading:true,
+      });
+      this.obstructionMesh = new THREE.Mesh( this.obstructionGeometry, this.obstructionMaterial);
+      this.obstructionMesh.position.z = 0.5;
+      this.obstructionMesh.position.x = obstructionShift;
+    
+      latheFlag = 1;            //this is to avoid redrawing every time it loops
+      blockageCounter += 1;     //adds time
+      obstructionShift-= 0.001;
+
+      console.log(obstructionShift);
+      //heightSegments+=1; //increases height segments
+      //widthSegments+=1;  //increases width segments
+    
+      this.scene.add(this.obstructionMesh);
+
+    }
+    
+    if (clock.getElapsedTime() - myTime > Tstart + blockageCounter){
+      if (obstructionShift>0.01){
+      latheFlag = 0;
+      }
+    }
+
+    if (obstructionShift<=0.01  && rectangleFlag == 1){
+
+      this.tubeReflector.material.uniforms.speed.value = 0;
+
+      //The Dark Plane
+
+      this.planeGeometry = new THREE.PlaneGeometry( 1, 1, 2, 2 );
+      this.planeMaterial = new THREE.MeshBasicMaterial( {
+        color: 0x000000,
+        transparent: true,
+        opacity: 0.8,
+        side: THREE.DoubleSide
+      } );
+
+      this.plane = new THREE.Mesh( this.planeGeometry, this.planeMaterial );
+     
+      this.plane.position.z = 0.03;
+      this.plane.position.x = 0;
+      this.plane.rotateZ( Math.PI / 2);
+     
+      this.scene.add(this.plane);
+
+      //INSERT TEXT HERE
+      this.stentInstructionsText = document.getElementById("stentInstructions");
+      //this.instructionPopUp.add(),
+      this.stentInstructionsText.style.opacity = "1.0";
+
+      mouseFlag = 1;
+      doneFlag = 1;
+      latheFlag = 0;
+      rectangleFlag = 1;
+      clickFlag = 1;
+
+
+    }
+
+    //THIS IS WHERE THE CODE REFERENCES THE DONE FLAG SECTION
+    
+    if (doneFlag == 1){
+      //clock = clock;
+      myTime = clock.getElapsedTime();
+      textRemoveFlag = 0;
+      doneFlag = 0;
+    }
+
+  }
+
+}
+
+  //console.log(clock.getElapsedTime() - myTime);
+
+  // Update camera position & rotation
+  // This is super necessary because otherwise it does a really weird thing where half the thing is grey
+  this.updateCameraPosition();
+
+  // Move the probe and the rotating sphere
+  this.probeMotion();
+
+  // Update the color of the tunnel
+  this.setColor();
+
+  // Update the mouse control to change the curve of the tunnel thing
+  this.updateCurve();
+
+  for (var i = 0; i < this.particles.length; i++) {
+    this.particles[i].update(this);
+    if (this.particles[i].burst && this.particles[i].percent > 1) {
+      this.particlesContainer.remove(this.particles[i].mesh);
+      this.particles.splice(i, 1);
+      i--;
+    }
+  }
+
+  this.tubeReflectorMaterial.uniforms.time.value = clock.getElapsedTime();
+
+  // render the scene
+  this.renderer.render(this.scene, this.camera);
+
+  // Animation loop
+  window.requestAnimationFrame(this.render.bind(this));
 
 };
 
@@ -560,7 +1144,7 @@ Tunnel.prototype.updateCameraPosition = function () {
   this.camera.position.x = this.mouse.position.x * 0.01;
   this.camera.position.y = -this.mouse.position.y * 0.01;
 
-  console.log(this.camera.position.y);
+  //console.log(this.camera.position.y);
 
   //IF SPACEBAR PRESSED IS TRUE
 
@@ -577,107 +1161,29 @@ Tunnel.prototype.updateCameraPosition = function () {
 
 };
 
-// UPDATE THE MATERIAL OFFSET - (looped)
+// PROBE UPDATE FUNCTION - LOOPED
 
-Tunnel.prototype.updateMaterialOffset = function () {
+Tunnel.prototype.probeMotion = function (){
 
-  // Update the offset of the material
- // this.tubeMaterial.map.offset.set(offsetTest/2, 0.0);
-    //+=  ) this.speed;
-  //this.tubeMaterial.alphaMap.offset.set(-offsetTest/2, 0.0);
+  this.particleLight.position.x = THREE.Math.mapLinear(-this.mouse.target.x, -1, 1, -0.011, 0.011);
+  this.particleLight.position.y = THREE.Math.mapLinear(this.mouse.target.y, -1, 1, -0.011, 0.011);
+  this.particleLight.position.z = 0.23;
 
- // this.tubeMaterial.alphaMap.updateMatrix();
+  //console.log(this.particleLight.position.y);
 
-};
+  this.probeHull.position.x = THREE.Math.mapLinear(-this.mouse.target.x, -1, 1, -0.011, 0.011);
+  this.probeHull.position.y = THREE.Math.mapLinear(this.mouse.target.y, -1, 1, -0.011, 0.011);
+  this.probeHull.position.z = 0.23;
 
-// UPDATE THE CURVE ON MOUSE MOTION - (looped)
+  this.particleLight.rotation.y += 0.06;
 
-Tunnel.prototype.updateCurve = function () {
+  this.probeHull.rotation.z += 0.2;
+  this.probeHull.rotation.x += 0.002;  
+  //particleLight.rotation.z += 0.06;
 
-  var index = 0,
-    vertice_o = null,
-    vertice = null;
+  //console.log(this.probeHull.rotation.x);
 
-  // For each vertice of the tube, move it a bit based on the spline
-  for (var i = 0, j = this.tubeGeometry.vertices.length; i < j; i += 1) {
-    // Get the original tube vertice
-    vertice_o = this.tubeGeometry_o.vertices[i];
-    // Get the visible tube vertice
-    vertice = this.tubeGeometry.vertices[i];
-    // Calculate index of the vertice based on the Z axis
-    // The tube is made of 50 rings of vertices
-    index = Math.floor(i / radialSegments);
-    // Update tube vertice
-    vertice.x +=
-      (vertice_o.x + this.splineMesh.geometry.vertices[index].x - vertice.x) /
-      10;
-    vertice.y +=
-      (vertice_o.y + this.splineMesh.geometry.vertices[index].y - vertice.y) /
-      100;
-  }
-
-  // Warn ThreeJs that the points have changed
-  this.tubeGeometry.verticesNeedUpdate = true;
-  this.tubeMesh.material.needsUpdate = true;
-
-  // Update the points along the curve base on mouse position
-  this.curve.points[2].x = -this.mouse.position.x * 0.1;
-  //this.curve.points[4].x = -this.mouse.position.x * 0.1;
-  this.curve.points[2].y = this.mouse.position.y * 0.1;
-
-  // Warn ThreeJs that the spline has changed
-  this.splineMesh.geometry.verticesNeedUpdate = true;
-  this.splineMesh.geometry.vertices = this.curve.getPoints(70);
-
-
-};
-
-// UPDATE THE TRACK CURVE ON MOUSE MOTION - (not yet added)
-
-Tunnel.prototype.trackUpdateCurve = function () {
-
-  var trackIndex = 0,
-    trackVertice_o = null,
-    trackVertice = null;
-
-  // For each vertice of the tube, move it a bit based on the spline
-  for (var i = 0, j = this.trackTubeGeometry.vertices.length; i < j; i += 1) {
-    // Get the original tube vertice
-    trackVertice_o = this.trackTubeGeometry_o.vertices[i];
-    // Get the visible tube vertice
-    trackVertice = this.trackTubeGeometry.vertices[i];
-
-    this.trackTubeGeometry.vertices[1].z = -0.2; 
-    this.trackTubeGeometry.vertices[1].y = -0.004; 
-    this.trackTubeGeometry.vertices[1].x = 0; 
-
-    // Calculate index of the vertice based on the Z axis
-    // The tube is made of 50 rings of vertices
-    trackIndex = Math.floor(i / 70);
-    // Update tube vertice
-    trackVertice.x +=
-      (trackVertice_o.x + this.trackSplineMesh.geometry.vertices[trackIndex].x - trackVertice.x) /
-      10;
-    trackVertice.y +=
-      (trackVertice_o.y + this.trackSplineMesh.geometry.vertices[trackIndex].y - trackVertice.y) /
-      5;
-  }
-
-  // Warn ThreeJs that the points have changed
-  this.trackTubeGeometry.verticesNeedUpdate = true;
-  this.trackMesh.material.needsUpdate = true;
-
-  // Update the points along the curve base on mouse position
-  this.trackCurve.points[2].x = -this.mouse.position.x * 0.1;
-  //this.curve.points[4].x = -this.mouse.position.x * 0.1;
-  this.trackCurve.points[2].y = this.mouse.position.y * 0.1;
-
-  // Warn ThreeJs that the spline has changed
-  this.trackSplineMesh.geometry.verticesNeedUpdate = true;
-  this.trackSplineMesh.geometry.vertices = this.curve.getPoints(70);
-
-
-};
+}
 
 // MATERIALS UPDATE FUNCTION - (looped)
 
@@ -685,6 +1191,8 @@ Tunnel.prototype.setColor = function () {
 
   this.tubeMesh = new THREE.Mesh(this.tubeGeometry, this.tubeMaterial);
   this.tubeReflector = new THREE.Mesh(this.tubeReflectorGeometry, this.tubeReflectorMaterial);
+  this.lathe = new THREE.Mesh( this.latheGeometry, this.latheMaterial );
+  this.scene.remove(this.lathe);
 
   //MOUSE MOVE
 
@@ -752,6 +1260,7 @@ Tunnel.prototype.setColor = function () {
     //implement the color shift on the voronoi texture and the main tunnel
     this.tubeReflector.material.uniforms.color.value.setHSL(Hue, Sat, Lgt);
     this.tubeMesh.material.color.setHSL(Hue, Sat, Lgt);
+    this.lathe.material.color.setHSL(Hue, Sat, Lgt);
 
   }
 
@@ -773,6 +1282,7 @@ Tunnel.prototype.setColor = function () {
     //implement the color shift on the voronoi texture and the main tunnel
     this.tubeReflector.material.uniforms.color.value.setHSL(Hue, Sat, Lgt);
     this.tubeMesh.material.color.setHSL(Hue, Sat, Lgt);
+    this.lathe.material.color.setHSL(Hue, Sat, Lgt);
 
   }
 
@@ -795,6 +1305,7 @@ Tunnel.prototype.setColor = function () {
     //implement the color shift on the voronoi texture and the main tunnel
     this.tubeReflector.material.uniforms.color.value.setHSL(backwardsHue, .5, .5);
     this.tubeMesh.material.color.setHSL(backwardsHue, 0.5, 0.5);
+    this.lathe.material.color.setHSL(backwardsHue, 0.5, 0.5);
 
   }
 
@@ -805,7 +1316,7 @@ Tunnel.prototype.setColor = function () {
     let ydist = sectionFour - Math.abs(this.mouse.target.y);
     let dist = Math.min(xdist, ydist);
 
-    let Hue = (hue32 + (hue4 - hue32) / (sectionFour - sectionThree) * ((sectionFour - sectionThree) - dist));
+    let Hue = Math.abs((hue32 + (hue4 - hue32) / (sectionFour - sectionThree) * ((sectionFour - sectionThree) - dist)));
 
     let Sat = (sat3 + (sat4 - sat3) / (sectionFour - sectionThree) * ((sectionFour - sectionThree) - dist));
 
@@ -816,385 +1327,49 @@ Tunnel.prototype.setColor = function () {
     //implement the color shift on the voronoi texture and the main tunnel
     this.tubeReflector.material.uniforms.color.value.setHSL(backwardsHue, 0.5, 0.5);
     this.tubeMesh.material.color.setHSL(backwardsHue, 0.5, 0.5);
+    this.lathe.material.color.setHSL(backwardsHue, 0.5, 0.5);
 
   }
-
-  //BOX FIVE
-  else if (this.mouse.target.x >= -sectionFive && this.mouse.target.x <= sectionFive && this.mouse.target.y >= -sectionFive && this.mouse.target.y <= sectionFive) {
-
-    // let xdist = sectionFour-Math.abs(this.mouse.target.x);
-    // let ydist = sectionFour-Math.abs(this.mouse.target.y);
-    // let dist = Math.min(xdist, ydist);   
-
-    // let Hue = (hue4+(hue5-hue4)/(sectionFive-sectionFour)*((sectionFive-sectionFour)-dist));
-
-    // let Sat = (sat4+(sat5-sat4)/(sectionFive-sectionFour)*((sectionFive-sectionFour)-dist));
-
-    // let Lgt = (light4+(light5-light4)/(sectionFive-sectionFour)*((sectionFive-sectionFour)-dist));
-
-    // //implement the color shift on the voronoi texture and the main tunnel
-    // this.tubeReflector.material.uniforms.color.value.setHSL(Hue, Sat, Lgt);
-    // this.tubeMesh.material.color.setHSL(Hue, Sat, Lgt);
-
-  }
-
 }
 
-// LIGHTS UPDATE FUNCTION - (INITIALISATION - NOT LOOPED, POSITION- Looped)
+// UPDATE THE CURVE ON MOUSE MOTION - (looped)
 
-Tunnel.prototype.light = function () {
-  this.particleLight = new THREE.Mesh(
-    //SphereGeometry(radius : Float, widthSegments : Integer, heightSegments : Integer, phiStart : Float, phiLength : Float, thetaStart : Float, thetaLength : Float)
-    new THREE.SphereGeometry(0.003, 40, 40),
-    new THREE.MeshPhongMaterial({
-      color: 0xffffff,
-     // specular: 0xffffff,
-      emissive: 0xffffff,
-      shininess: 20,
-      opacity: 1,
-      //metalness: 0.4,
-      emissiveIntensity : 3,
-      //map: textures.marble.texture,
-      // //bumpMap: textures.stoneBump.texture,
-    })
-    //new THREE.MeshBasicMaterial( { color: 0xffffff } )
-  );
+Tunnel.prototype.updateCurve = function () {
 
-  this.probeHull = new THREE.Mesh(
-    //SphereGeometry(radius : Float, widthSegments : Integer, heightSegments : Integer, phiStart : Float, phiLength : Float, thetaStart : Float, thetaLength : Float)
-    new THREE.SphereGeometry(0.004, 32, 32, 0, 2.7, 0, 4),
-    new THREE.MeshPhongMaterial({
-      color: 0xfff000,
-      specular: 0x666666,
-      shininess: 20,
-      opacity: 1,
-      transparent: true,
-      map: textures.marble.texture,
-      //bumpMap: textures.stoneBump.texture,
-    })
-    //new THREE.MeshBasicMaterial( { color: 0xffffff } )
-  );
+  var index = 0,
+    vertice_o = null,
+    vertice = null;
 
-  //this.probeHull.rotation.z = (90 * Math.PI) / 180;
-
-  this.scene.add(this.particleLight);
-  this.scene.add(this.probeHull);
-
-  //PointLight( color : Integer, intensity : Float, distance : Number, decay : Float )
-
-  this.flashLight = new THREE.PointLight(0xffffff, 1.0, 0.3, 6)
-
-  //particleLight.add( new THREE.DirectionalLight (0xffffff, 0.5))
-  this.particleLight.add(this.flashLight);
-
-  //   const targetObject = new THREE.Object3D();
-  // scene.add(targetObject);
-
-  // light.target = targetObject;
-
-}
-
-// PROBE UPDATE FUNCTION - LOOPED
-
-Tunnel.prototype.probeMotion = function (){
-
-  this.particleLight.position.x = THREE.Math.mapLinear(-this.mouse.target.x, -1, 1, -0.011, 0.011);
-  this.particleLight.position.y = THREE.Math.mapLinear(this.mouse.target.y, -1, 1, -0.011, 0.011);
-  this.particleLight.position.z = 0.23;
-
-  //console.log(this.particleLight.position.y);
-
-  this.probeHull.position.x = THREE.Math.mapLinear(-this.mouse.target.x, -1, 1, -0.011, 0.011);
-  this.probeHull.position.y = THREE.Math.mapLinear(this.mouse.target.y, -1, 1, -0.011, 0.011);
-  this.probeHull.position.z = 0.23;
-
-  this.particleLight.rotation.y += 0.06;
-
-  this.probeHull.rotation.z += 0.2;
-  this.probeHull.rotation.x += 0.002;  
-  //particleLight.rotation.z += 0.06;
-
-  console.log(this.probeHull.rotation.x);
-
-}
-
-Tunnel.prototype.curveGeo = function () {
-
-  const closedSpline = new THREE.CatmullRomCurve3( [
-    new THREE.Vector3( this.particleLight.position.x, this.particleLight.position.y, this.particleLight.position.z ),
-    // new THREE.Vector3( - 0.0060, 0.0020, 0.0060 ),
-    // new THREE.Vector3( - 0.0060, 0.00120, 0.0060 ),
-    new THREE.Vector3( 0.0060, 0.0020, - 0.0060 ),
-    new THREE.Vector3( 0, - 0.02, - 0.02)
-  ] );
-
-  closedSpline.curveType = 'catmullrom';
-  closedSpline.closed = false;
-
-  const extrudeSettings1 = {
-    steps: 400,
-    bevelEnabled: false,
-    extrudePath: closedSpline
-  };
-
-
-  const pts1 = [], count = 7;
-
-  for ( let i = 0; i < count; i ++ ) {
-
-    const l = 0.0003;
-
-    const a = 2 * i / count * Math.PI;
-
-    pts1.push( new THREE.Vector2( Math.cos( a ) * l, Math.sin( a ) * l ) );
-
+  // For each vertice of the tube, move it a bit based on the spline
+  for (var i = 0, j = this.tubeGeometry.vertices.length; i < j; i += 1) {
+    // Get the original tube vertice
+    vertice_o = this.tubeGeometry_o.vertices[i];
+    // Get the visible tube vertice
+    vertice = this.tubeGeometry.vertices[i];
+    // Calculate index of the vertice based on the Z axis
+    // The tube is made of 50 rings of vertices
+    index = Math.floor(i / radialSegments);
+    // Update tube vertice
+    vertice.x +=
+      (vertice_o.x + this.splineMesh.geometry.vertices[index].x - vertice.x) /
+      10;
+    vertice.y +=
+      (vertice_o.y + this.splineMesh.geometry.vertices[index].y - vertice.y) /
+      100;
   }
 
-  const shape1 = new THREE.Shape( pts1 );
+  // Warn ThreeJs that the points have changed
+  this.tubeGeometry.verticesNeedUpdate = true;
+  this.tubeMesh.material.needsUpdate = true;
 
-  const geometry1 = new THREE.ExtrudeGeometry( shape1, extrudeSettings1 );
+  // Update the points along the curve base on mouse position
+  this.curve.points[2].x = -this.mouse.position.x * 0.1;
+  //this.curve.points[4].x = -this.mouse.position.x * 0.1;
+  this.curve.points[2].y = this.mouse.position.y * 0.1;
 
-  const material1 = new THREE.MeshLambertMaterial( { color: 0x000000, wireframe: true } );
+  // Warn ThreeJs that the spline has changed
+  this.splineMesh.geometry.verticesNeedUpdate = true;
+  this.splineMesh.geometry.vertices = this.curve.getPoints(70);
 
-  this.mesh1 = new THREE.Mesh( geometry1, material1 );
-
-  this.scene.add( this.mesh1 );
-
-  this.mesh1.position.z = 0.2;
-
-      }
-
-// RENDER FUNCTION - (looped)
-Tunnel.prototype.render = function () {
-
-  //SPACEBAR NOT PRESSED - DEFAULT STATE
-  // Update material offset
-  //this is the thing that makes the walls look like they're moving towards you
-  //this.updateMaterialOffset();
-
-  // cylinder.rotation.x = (Math.PI/2)-(Math.tan((0.02+this.particleLight.position.y)/0.23));
-  // cylinder.rotation.y = (Math.tan((this.particleLight.position.x)/0.23));
-  // cylinder.position.x = 0;
-  //  cylinder.position.y = -0.005;
-  //  cylinder.position.z = 0.115;
-
-  // let cylinderYOffset = cylinder.position.y - 0.3
-
-   cylinder.position.x = this.particleLight.position.x;
-   cylinder.position.y = this.particleLight.position.y;
-   cylinder.position.z = 0.23;
-
-	var delta = clock.getDelta(); 
-
-//	myAlphaAnimator.update(-(100 * delta));
-	myAnimator.update(200 * delta);
-
-  // Update camera position & rotation
-  // This is super necessary because otherwise it does a really weird thing where half the thing is grey
-  this.updateCameraPosition();
-
-  // Move the probe and the rotating sphere
-  this.probeMotion();
-
-  // Update the color of the tunnel
-  this.setColor();
-
-  // Update the mouse control to change the curve of the tunnel thing
-  this.updateCurve();
-
-  // Update the track that connects to the probe
-  //this.trackUpdateCurve();
-
-  for (var i = 0; i < this.particles.length; i++) {
-    this.particles[i].update(this);
-    if (this.particles[i].burst && this.particles[i].percent > 1) {
-      this.particlesContainer.remove(this.particles[i].mesh);
-      this.particles.splice(i, 1);
-      i--;
-    }
-  }
-
-  this.tubeReflectorMaterial.uniforms.time.value = clock.getElapsedTime();
-
-  // render the scene
-  this.renderer.render(this.scene, this.camera);
-
-  // Animation loop
-  window.requestAnimationFrame(this.render.bind(this));
 
 };
-
-// TEXTURE STUFF
-
-var textures = {
-  "stone": {
-    url: "img/demo1/alphaMap10.png"
-  },
-  "stoneBump": {
-    url: "img/demo1/tunnelSized.jpg"
-  },
-  "marble": {
-    url: "img/demo1/marble2.png"
-  }
-};
-// Create a new loader
-var loader = new THREE.TextureLoader();
-// Prevent crossorigin issue
-loader.crossOrigin = "Anonymous";
-// Load all textures
-for (var name in textures) {
-  (function (name) {
-    loader.load(textures[name].url, function (texture) {
-      textures[name].texture = texture;
-      checkTextures();
-    });
-  })(name)
-}
-var texturesLoaded = 0;
-
-function checkTextures() {
-  texturesLoaded++;
-  if (texturesLoaded === Object.keys(textures).length) {
-    document.body.classList.remove("loading");
-    // When all textures are loaded, init the scene
-    window.tunnel = new Tunnel();
-  }
-}
-
-function Particle(scene, burst) {
-  var radius = Math.random() * 0.003 + 0.0003;
-
-  var changeRad = Math.random()*0.9;
-  var changeWidthSeg = Math.floor(Math.random()*20);
-
-  //SphereGeometry(radius : Float, widthSegments : Integer, heightSegments : Integer, phiStart : Float, phiLength : Float, thetaStart : Float, thetaLength : Float)
-  var geom = new THREE.SphereGeometry(changeRad, changeWidthSeg, 32, 0, 6.3, 0, 3.1);
-  //var geom = cell.geometry;
-  var range = 234;   //range of colours allowed
-  var offset = burst ? 200 : 350;
-  var saturate = Math.floor(Math.random()*20 + 65);
-  var light = burst ? 20 : 56;
-  this.color = new THREE.Color("hsl(" + (Math.random() * range - 200) + ","+saturate+"%,"+light+"%)");
-  var mat = new THREE.MeshPhongMaterial({
-    color: this.color,
-    map: textures.marble.texture
-    // shading: THREE.FlatShading
-  });
-  this.mesh = new THREE.Mesh(geom, mat);
-  this.mesh.scale.set(radius, radius, radius);
-  //this.mesh.radius = (Math.random()*0.4);
-  //this.mesh.widthSegments = (Math.random)*6;
-  this.mesh.scale.z += (Math.random()-0.5)*0.001;
-  this.mesh.position.set(0, 0, 1.5);
-  this.percent = burst ? 0.2 : Math.random();
-  this.burst = burst ? true : false;
-  this.offset = new THREE.Vector3((Math.random() - 0.5) * 0.025, (Math.random() - 0.5) * 0.025, 0);
-
-  //This multiplied number determines the max value for speed
-  this.speed = Math.random() * 9; // + 0.0002;
-  if (this.burst) {
-    this.speed += 0.003;
-    this.mesh.scale.x *= 1.4;
-    this.mesh.scale.y *= 1.4;
-    this.mesh.scale.z *= 1.4;
-  }
-  this.rotate = new THREE.Vector3(-Math.random() * 0.1 + 0.01, 0, Math.random() * 0.01);
-
-  this.pos = new THREE.Vector3(0, 0, 0);
-};
-
-// Particle.prototype.cube = new THREE.BoxBufferGeometry(1, 1, 1);
-// Particle.prototype.sphere = new THREE.SphereBufferGeometry(1, 6, 6);
-// Particle.prototype.icosahedron = new THREE.IcosahedronBufferGeometry(1, 0);
-Particle.prototype.update = function(tunnel) {
-
-  this.percent += this.speed * (this.burst ? 1 : tunnel.speed);
-
-  this.pos = tunnel.curve.getPoint(1 - (this.percent % 1)).add(this.offset);
-  this.mesh.position.x = this.pos.x;
-  this.mesh.position.y = this.pos.y;
-  this.mesh.position.z = this.pos.z;
-  this.mesh.rotation.x += this.rotate.x;
-  this.mesh.rotation.y += this.rotate.y;
-  this.mesh.rotation.z += this.rotate.z;
-
-  this.mesh.position.z -= 0.02;
-
-};
-
-function init() {
-
-  var loader = new THREE.OBJLoader();
-  loader.load(
-    'img/demo4/blood_cell.obj',
-    function(obj) {
-      window.tunnel = new Tunnel(obj);
-    }
-  );
-}
-
-window.onload = init;
-
-function TextureAnimator(texture, tilesHoriz, tilesVert, numTiles, tileDispDuration) 
-{	
-	// note: texture passed by reference, will be updated by the update function.
-		
-	this.tilesHorizontal = tilesHoriz;
-	this.tilesVertical = tilesVert;
-	// how many images does this spritesheet contain?
-	//  usually equals tilesHoriz * tilesVert, but not necessarily,
-	//  if there at blank tiles at the bottom of the spritesheet. 
-	this.numberOfTiles = numTiles;
-	texture.wrapS = texture.wrapT = THREE.RepeatWrapping; 
-	texture.repeat.set( 1 / this.tilesHorizontal, 1 / this.tilesVertical );
-
-	// how long should each image be displayed?
-	this.tileDisplayDuration = tileDispDuration;
-
-	// how long has the current image been displayed?
-	this.currentDisplayTime = 0;
-
-	// which image is currently being displayed?
-	this.currentTile = 0;
-		
-	this.update = function( milliSec )
-	{
-		this.currentDisplayTime += milliSec;
-		while (this.currentDisplayTime > this.tileDisplayDuration)
-		{
-			this.currentDisplayTime -= this.tileDisplayDuration;
-			this.currentTile++;
-			if (this.currentTile == this.numberOfTiles)
-				this.currentTile = 0;
-			var currentColumn = this.currentTile % this.tilesHorizontal;
-			texture.offset.x = currentColumn / (this.tilesHorizontal/8);
-			var currentRow = Math.floor( this.currentTile / this.tilesHorizontal );
-			texture.offset.y += 0.01; //currentRow / (this.tilesVertical/9);
-		}
-	};
-}		
-
-// INTERACTIVITY MEASURES 
-
-// function gui(uniforms) {
-//   var gui = new dat.GUI();
-
-//   for (key in uniforms) {
-//     // Skip the time uniform as that is incremented in the render function
-//     if (key !== 'time') {
-//       if (uniforms[key].type == 'f') {
-//         var controller = gui.add(uniforms[key], 'value').name(key);
-//       } else if (uniforms[key].type == 'c') {
-//         uniforms[key].guivalue = [uniforms[key].value.r * 255, uniforms[key].value.g * 255, uniforms[key].value.b * 255];
-//         var controller = gui.addColor(uniforms[key], 'guivalue').name(key);
-//         controller.onChange(function (value) {
-//           this.object.value.setRGB(value[0] / 255, value[1] / 255, value[2] / 255);
-//         });
-//       } else if (uniforms[key].type == 'v3') {
-//         var controllerx = gui.add(uniforms[key].value, 'x').name(key + ' X');
-//         var controllery = gui.add(uniforms[key].value, 'y').name(key + ' Y');
-//         var controllerz = gui.add(uniforms[key].value, 'z').name(key + ' Z');
-//       }
-//     }
-//   }
-// }
