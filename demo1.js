@@ -290,10 +290,10 @@ Tunnel.prototype.audioStart = function () {
 
   audioLoader.load('sounds/X3Loud2.mp3', function (buffer) {
 
-    sound.setBuffer(buffer);
-    sound.setLoop(true);
-    sound.setVolume(8);
-    sound.play();
+    this.sound.setBuffer(buffer);
+    this.sound.setLoop(true);
+    this.sound.setVolume(8);
+    this.sound.play();
 
   });
 
@@ -705,11 +705,11 @@ Tunnel.prototype.onDocumentMouseDown = function (event){
       //3. Increase the segments and radii
       //4. Redraw the stent with the new parameters
 
-     // this.audioStart();
+     this.audioStart();
 
-    // var audioCtx = new AudioContext();
-    // audioCtx.resume();
-
+    var audioCtx = new AudioContext();
+    audioCtx.resume();
+	
     //RANDOM INTERACTIONS
       modeFlag = Math.floor(Math.random(0, 1));
       console.log(modeFlag);
