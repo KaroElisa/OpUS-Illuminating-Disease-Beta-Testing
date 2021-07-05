@@ -355,7 +355,7 @@ Tunnel.prototype.createMesh = function () {
 
   // MESH STANDARD MATERIAL - HIGH REFLECTIVITY
 
-  var tunnelTexture = new THREE.TextureLoader().load('img/demo1/marbleTextureNoOpacity.png');
+  var tunnelTexture = new THREE.TextureLoader().load('img/demo1/marbleTextureNoOpacity.jpg');
   myAnimator = new TextureAnimator( tunnelTexture, 1, 10, 45, 20 ); // texture, #horiz, #vert, #total, duration.
 
 
