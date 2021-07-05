@@ -661,6 +661,7 @@ Tunnel.prototype.handleEvents = function () {
   document.body.addEventListener( 
     'mousedown', 
     this.onDocumentMouseDown.bind(this), 
+    this.audioStart.bind(this),
     false 
     );
 
@@ -705,10 +706,10 @@ Tunnel.prototype.onDocumentMouseDown = function (event){
       //3. Increase the segments and radii
       //4. Redraw the stent with the new parameters
 
-     this.audioStart();
+//      this.audioStart();
 
-    var audioCtx = new AudioContext();
-    audioCtx.resume();
+//     var audioCtx = new AudioContext();
+//     audioCtx.resume();
 	
     //RANDOM INTERACTIONS
       modeFlag = Math.floor(Math.random(0, 1));
