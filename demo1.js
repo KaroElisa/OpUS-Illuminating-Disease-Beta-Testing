@@ -699,6 +699,9 @@ Tunnel.prototype.onResize = function () {
 //insert stent redraw command
 
 Tunnel.prototype.onDocumentMouseDown = function (event){
+	
+	
+getAudioContext().resume();
 
   //INTERACTION INTRODUCTION
       //1. Add a "click to remove" statement
