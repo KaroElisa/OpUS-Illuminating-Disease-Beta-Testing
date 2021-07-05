@@ -661,7 +661,7 @@ Tunnel.prototype.handleEvents = function () {
   document.body.addEventListener( 
     'mousedown', 
     this.onDocumentMouseDown.bind(this), 
-    this.audioStart.bind(this),
+   // this.audioStart.bind(this),
     false 
     );
 
