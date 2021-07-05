@@ -147,7 +147,7 @@ var textures = {
     url: "img/demo1/tunnelSized.jpg"
   },
   "marble": {
-    url: "img/demo1/marbleTextureNoOpacity.png"
+    url: "img/demo1/marbleTextureNoOpacity.jpg"
   }
 };
 
@@ -595,7 +595,7 @@ Tunnel.prototype.drawStent = function (segments, phiStart, phiLength, latheRadiu
 
   //console.log(latheVertices);
 
-  var tunnelTexture2 = new THREE.TextureLoader().load('img/demo1/marbleTextureNoOpacity.png');
+  var tunnelTexture2 = new THREE.TextureLoader().load('img/demo1/marbleTextureNoOpacity.jpg');
   //myAnimator = new TextureAnimator( tunnelTexture2, 1, 10, 45, 20 ); // texture, #horiz, #vert, #total, duration.
 
   this.latheMaterial = new THREE.MeshStandardMaterial({
