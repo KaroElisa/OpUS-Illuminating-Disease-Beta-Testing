@@ -127,7 +127,13 @@ var latheFlag = 0;
 var clickFlag = 0;
 var textRemoveFlag = 0;
 
-var Tstart = 10;
+var Tstart = 45;
+var TstartMin = 15;
+var Trange = 30; //stent can show up between 15 and 45 seconds (15+30 = 45)
+
+var TobstructionStart = 45;
+var TobstructionStartMin = 5;
+var TobstructionRange = 10; //obstruction can show up between 5 and 15 sec
 
 
 //OBSTRUCTION STUFF
@@ -147,7 +153,7 @@ var textures = {
     url: "img/demo1/tunnelSized.jpg"
   },
   "marble": {
-    url: "img/demo1/marbleTextureNoOpacity.jpg"
+    url: "img/demo1/marbleTextureNoOpacity4.jpg"
   }
 };
 
@@ -183,7 +189,7 @@ function Tunnel(cell) {
 
   console.log("at tunnel");
 
-//console.log(this.startFlag);
+  //console.log(this.startFlag);
 
   // Init the scene and the
   this.init();
@@ -191,15 +197,17 @@ function Tunnel(cell) {
   // Create the shape of the tunnel
   this.createMesh();
 
- // this.popUpStent();
+  // this.popUpStent();
 
   //CylinderGeometry(radiusTop : Float, radiusBottom : Float, height : Float, radialSegments : Integer, heightSegments : Integer, openEnded : Boolean, thetaStart : Float, thetaLength : Float)
-  const geometry = new THREE.CylinderGeometry( 0.0005, 0.0005, 0.08, 32, 15, false, 0, Math.PI*2 );
-  const material = new THREE.MeshBasicMaterial( {color: 0x000000} );
-  
-  cylinder = new THREE.Mesh( geometry, material );
+  const geometry = new THREE.CylinderGeometry(0.0005, 0.0005, 0.08, 32, 15, false, 0, Math.PI * 2);
+  const material = new THREE.MeshBasicMaterial({
+    color: 0x000000
+  });
 
-  cylinder.rotation.x = (90*Math.PI)/180;
+  cylinder = new THREE.Mesh(geometry, material);
+
+  cylinder.rotation.x = (90 * Math.PI) / 180;
   cylinder.position.z = 0.23;
 
   //PointLight( color : Integer, intensity : Float, distance : Number, decay : Float )
@@ -276,12 +284,12 @@ Tunnel.prototype.audioStart = function () {
   const audioLoader = new THREE.AudioLoader();
 
   this.frequencyShift = new THREE.PositionalAudio(listener);
-  
+
   this.oscillator = listener.context.createOscillator();
   this.oscillator.type = 'sine';
   this.oscillator.frequency.setValueAtTime(200, this.frequencyShift.context.currentTime);
   this.oscillator.start(0);
-  
+
   this.frequencyShift.setNodeSource(this.oscillator);
   this.frequencyShift.setRefDistance(20);
   this.frequencyShift.setVolume(0.2);
@@ -290,10 +298,10 @@ Tunnel.prototype.audioStart = function () {
 
   audioLoader.load('sounds/X3Loud2.mp3', function (buffer) {
 
-    this.sound.setBuffer(buffer);
-    this.sound.setLoop(true);
-    this.sound.setVolume(8);
-    this.sound.play();
+    sound.setBuffer(buffer);
+    sound.setLoop(true);
+    sound.setVolume(8);
+    sound.play();
 
   });
 
@@ -303,7 +311,7 @@ Tunnel.prototype.audioStart = function () {
 
 // ADD BLOOD PARTICLES - (not looped)
 
-Tunnel.prototype.addParticle = function() {
+Tunnel.prototype.addParticle = function () {
   this.particles = [];
   this.particlesContainer = new THREE.Object3D();
   this.scene.add(this.particlesContainer);
@@ -318,9 +326,9 @@ Tunnel.prototype.addParticle = function() {
 
 Tunnel.prototype.createMesh = function () {
 
-// CREATE THE GEOMETRY
+  // CREATE THE GEOMETRY
 
-//POSSIBLY ADD PERLIN NOISE ALGORITHM TO "PULSE" THE TUNNEL LIKE A HEARTBEAT
+  //POSSIBLY ADD PERLIN NOISE ALGORITHM TO "PULSE" THE TUNNEL LIKE A HEARTBEAT
 
   // Empty array to store the points along the path
   var points = [];
@@ -347,7 +355,7 @@ Tunnel.prototype.createMesh = function () {
 
   //TubeGeometry(path : Curve, tubularSegments : Integer, radius : Float, radialSegments : Integer, closed : Boolean)
   this.tubeGeometry = new THREE.TubeGeometry(this.curve, 70, 0.02, 50, false);
-  
+
   // Create a mesh based on the tube geometry and its material
 
 
@@ -355,8 +363,8 @@ Tunnel.prototype.createMesh = function () {
 
   // MESH STANDARD MATERIAL - HIGH REFLECTIVITY
 
-  var tunnelTexture = new THREE.TextureLoader().load('img/demo1/marbleTextureNoOpacity.jpg');
-  myAnimator = new TextureAnimator( tunnelTexture, 1, 10, 45, 20 ); // texture, #horiz, #vert, #total, duration.
+  var tunnelTexture = new THREE.TextureLoader().load('img/demo1/marbleTextureNoOpacity4.jpg');
+  myAnimator = new TextureAnimator(tunnelTexture, 1, 10, 45, 20); // texture, #horiz, #vert, #total, duration.
 
 
   this.tubeMaterial = new THREE.MeshStandardMaterial({
@@ -366,7 +374,7 @@ Tunnel.prototype.createMesh = function () {
     wireframe: false,
     side: THREE.DoubleSide,
     //alphaTest: 0.5,
-    transparent: true,  //this gives the hazy effect when it hits the greys
+    transparent: true, //this gives the hazy effect when it hits the greys
     map: tunnelTexture,
     alphaMap: textures.stone.texture,
   });
@@ -374,7 +382,7 @@ Tunnel.prototype.createMesh = function () {
   this.tubeMesh = new THREE.Mesh(this.tubeGeometry, this.tubeMaterial);
 
   // ADD AUDIO
- // this.tubeMesh.add(this.sound);
+  // this.tubeMesh.add(this.sound);
 
   // TEXTURE TUNNEL
 
@@ -389,7 +397,7 @@ Tunnel.prototype.createMesh = function () {
     },
     speed: {
       type: "f",
-      value: -0.02
+      value: -0.01
     },
     time: {
       type: "f",
@@ -413,7 +421,7 @@ Tunnel.prototype.createMesh = function () {
   });
 
   // CylinderBufferGeometry(radiusTop, radiusBottom, height, radiusSegments, heightSegments, openEnded, thetaStart, thetaLength)
-  this.tubeReflectorGeometry = new THREE.CylinderBufferGeometry(0.0042, 0.0042, 20, 23, 11, false);
+  this.tubeReflectorGeometry = new THREE.CylinderBufferGeometry(0.006, 0.006, 0.3, 23, 11, true);
 
   //this.tubeReflectorGeometry = new THREE.CylinderBufferGeometry(0.003, 0.003, 0.05, 23, 11, true);
 
@@ -434,7 +442,7 @@ Tunnel.prototype.createMesh = function () {
   // Add two lights in the scene
   // An hemisphere light, to add different light from sky and ground
   var light = new THREE.HemisphereLight(0x002626, 0x002626, 0.9);
-  this.scene.add( light );
+  this.scene.add(light);
 
   // Add a directional light for the bump
   var directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
@@ -444,7 +452,7 @@ Tunnel.prototype.createMesh = function () {
   this.tubeMaterial.map.wrapS = THREE.RepeatWrapping;
   this.tubeMaterial.map.wrapT = THREE.RepeatWrapping;
   // //(firstNumber:number of divisions in depth, secondNumber:ring divisions)
-   //this.tubeMaterial.map.repeat.set(10, 1);
+  //this.tubeMaterial.map.repeat.set(10, 1);
 
   //PointLight( color : Integer, intensity : Float, distance : Number, decay : Float )
   var endOfTunnelLight = new THREE.PointLight(0xffffff, 0.8, 7, 9);
@@ -458,63 +466,60 @@ Tunnel.prototype.createMesh = function () {
 
 };
 
-function TextureAnimator(texture, tilesHoriz, tilesVert, numTiles, tileDispDuration) 
-{	
-	// note: texture passed by reference, will be updated by the update function.
-		
-	this.tilesHorizontal = tilesHoriz;
-	this.tilesVertical = tilesVert;
-	// how many images does this spritesheet contain?
-	//  usually equals tilesHoriz * tilesVert, but not necessarily,
-	//  if there at blank tiles at the bottom of the spritesheet. 
-	this.numberOfTiles = numTiles;
-	texture.wrapS = texture.wrapT = THREE.RepeatWrapping; 
-	texture.repeat.set( 1 / this.tilesHorizontal, 1 / this.tilesVertical );
+function TextureAnimator(texture, tilesHoriz, tilesVert, numTiles, tileDispDuration) {
+  // note: texture passed by reference, will be updated by the update function.
 
-	// how long should each image be displayed?
-	this.tileDisplayDuration = tileDispDuration;
+  this.tilesHorizontal = tilesHoriz;
+  this.tilesVertical = tilesVert;
+  // how many images does this spritesheet contain?
+  //  usually equals tilesHoriz * tilesVert, but not necessarily,
+  //  if there at blank tiles at the bottom of the spritesheet. 
+  this.numberOfTiles = numTiles;
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(1 / this.tilesHorizontal, 1 / this.tilesVertical);
 
-	// how long has the current image been displayed?
-	this.currentDisplayTime = 0;
+  // how long should each image be displayed?
+  this.tileDisplayDuration = tileDispDuration;
 
-	// which image is currently being displayed?
-	this.currentTile = 0;
-		
-	this.update = function( milliSec )
-	{
-		this.currentDisplayTime += milliSec;
-		while (this.currentDisplayTime > this.tileDisplayDuration)
-		{
-			this.currentDisplayTime -= this.tileDisplayDuration;
-			this.currentTile++;
-			if (this.currentTile == this.numberOfTiles)
-				this.currentTile = 0;
-			var currentColumn = this.currentTile % this.tilesHorizontal;
-			texture.offset.x = currentColumn / (this.tilesHorizontal/8);
-			var currentRow = Math.floor( this.currentTile / this.tilesHorizontal );
-			texture.offset.y += 0.01; //currentRow / (this.tilesVertical/9);
+  // how long has the current image been displayed?
+  this.currentDisplayTime = 0;
+
+  // which image is currently being displayed?
+  this.currentTile = 0;
+
+  this.update = function (milliSec) {
+    this.currentDisplayTime += milliSec;
+    while (this.currentDisplayTime > this.tileDisplayDuration) {
+      this.currentDisplayTime -= this.tileDisplayDuration;
+      this.currentTile++;
+      if (this.currentTile == this.numberOfTiles)
+        this.currentTile = 0;
+      var currentColumn = this.currentTile % this.tilesHorizontal;
+      texture.offset.x = currentColumn / (this.tilesHorizontal / 8);
+      var currentRow = Math.floor(this.currentTile / this.tilesHorizontal);
+      texture.offset.y += 0.01; //currentRow / (this.tilesVertical/9);
       //console.log("updating");
-		}
-	};
+    }
+  };
 
-	// this.noUpdate = function( milliSec )
-	// {
-	// 	this.currentDisplayTime += milliSec;
-	// 	while (this.currentDisplayTime > this.tileDisplayDuration)
-	// 	{
-	// 		this.currentDisplayTime -= this.tileDisplayDuration;
-	// 		this.currentTile = 0;
-	// 		if (this.currentTile == this.numberOfTiles)
-	// 			this.currentTile = 0;
-	// 		var currentColumn = this.currentTile % this.tilesHorizontal;
-	// 		texture.offset.x = currentColumn / (this.tilesHorizontal/8);
-	// 		var currentRow = Math.floor( this.currentTile / this.tilesHorizontal );
-	// 		texture.offset.y += 0.01; //currentRow / (this.tilesVertical/9);
+  // this.noUpdate = function( milliSec )
+  // {
+  // 	this.currentDisplayTime += milliSec;
+  // 	while (this.currentDisplayTime > this.tileDisplayDuration)
+  // 	{
+  // 		this.currentDisplayTime -= this.tileDisplayDuration;
+  // 		this.currentTile = 0;
+  // 		if (this.currentTile == this.numberOfTiles)
+  // 			this.currentTile = 0;
+  // 		var currentColumn = this.currentTile % this.tilesHorizontal;
+  // 		texture.offset.x = currentColumn / (this.tilesHorizontal/8);
+  // 		var currentRow = Math.floor( this.currentTile / this.tilesHorizontal );
+  // 		texture.offset.y += 0.01; //currentRow / (this.tilesVertical/9);
   //     console.log("not updating");
-	// 	}
-	// };
+  // 	}
+  // };
 
-}		
+}
 
 // LIGHTS UPDATE FUNCTION - (INITIALISATION - NOT LOOPED, POSITION- Looped)
 
@@ -524,12 +529,12 @@ Tunnel.prototype.light = function () {
     new THREE.SphereGeometry(0.003, 40, 40),
     new THREE.MeshPhongMaterial({
       color: 0xffffff,
-     // specular: 0xffffff,
+      // specular: 0xffffff,
       emissive: 0xffffff,
       shininess: 20,
       opacity: 1,
       //metalness: 0.4,
-      emissiveIntensity : 3,
+      emissiveIntensity: 3,
       //map: textures.marble.texture,
       // //bumpMap: textures.stoneBump.texture,
     })
@@ -576,26 +581,26 @@ Tunnel.prototype.drawStent = function (segments, phiStart, phiLength, latheRadiu
 
   const lathePoints = [];
 
-  for ( let i = 0; i < 10; i ++ ) {
+  for (let i = 0; i < 10; i++) {
 
     //x, y
     //when i = 9, you want the argument of the sine to be PI/2
     //Math.sin( i * width) * shift + ( the place where the oculus opens ), 
     //( i - ? ) * squatness of the shape) );
 
-    lathePoints.push( new THREE.Vector2( Math.sin( i * ((Math.PI/2) / 9) ) * 0.18 + latheRadius, ( i - 5 ) * 0.007 ) );
+    lathePoints.push(new THREE.Vector2(Math.sin(i * ((Math.PI / 2) / 9)) * 0.18 + latheRadius, (i - 5) * 0.007));
   }
 
   //LatheGeometry(points : Array, segments : Integer, phiStart : Float, phiLength : Float)
 
-  this.latheGeometry = new THREE.LatheGeometry( lathePoints, segments, phiStart, phiLength );
+  //this.latheGeometry = new THREE.LatheGeometry( lathePoints, segments, phiStart, phiLength );
 
-  this.latheDepthGeometry = new THREE.LatheGeometry( lathePoints, segments, phiStart, phiLength );
+  this.latheDepthGeometry = new THREE.LatheGeometry(lathePoints, segments, phiStart, phiLength);
 
 
   //console.log(latheVertices);
 
-  var tunnelTexture2 = new THREE.TextureLoader().load('img/demo1/marbleTextureNoOpacity.jpg');
+  var tunnelTexture2 = new THREE.TextureLoader().load('img/demo1/marbleTextureNoOpacity4.jpg');
   //myAnimator = new TextureAnimator( tunnelTexture2, 1, 10, 45, 20 ); // texture, #horiz, #vert, #total, duration.
 
   this.latheMaterial = new THREE.MeshStandardMaterial({
@@ -605,34 +610,34 @@ Tunnel.prototype.drawStent = function (segments, phiStart, phiLength, latheRadiu
     wireframe: false,
     side: THREE.DoubleSide,
     alphaTest: 0.2,
-    transparent: false,  //this gives the hazy effect when it hits the greys
+    transparent: false, //this gives the hazy effect when it hits the greys
     map: tunnelTexture2,
     //alphaMap: textures.stone.texture,
   });
 
   //const latheMaterial = new THREE.MeshBasicMaterial( { color: 0xffff00 } );
-  this.lathe = new THREE.Mesh( this.latheGeometry, this.latheMaterial );
+  //this.lathe = new THREE.Mesh( this.latheGeometry, this.latheMaterial );
 
-  this.depthLathe = new THREE.Mesh( this.latheDepthGeometry, this.latheMaterial );
-
-
-// the position stuff
- this.lathe.position.x = 0;
- this.lathe.position.y = 0;
- this.lathe.position.z = 0.42;
-
- this.lathe.rotation.x = -(90 * Math.PI) / 180;
-
- this.depthLathe.position.x = 0;
- this.depthLathe.position.y = 0;
- this.depthLathe.position.z = 0.39;
-
- this.depthLathe.rotation.x = -(90 * Math.PI) / 180;
+  this.depthLathe = new THREE.Mesh(this.latheDepthGeometry, this.latheMaterial);
 
 
- //add everything to the scene
+  // the position stuff
+  //  this.lathe.position.x = 0;
+  //  this.lathe.position.y = 0;
+  //  this.lathe.position.z = 0.42;
+
+  //  this.lathe.rotation.x = -(90 * Math.PI) / 180;
+
+  this.depthLathe.position.x = 0;
+  this.depthLathe.position.y = 0;
+  this.depthLathe.position.z = 0.39;
+
+  this.depthLathe.rotation.x = -(90 * Math.PI) / 180;
+
+
+  //add everything to the scene
   //this.scene.add( this.lathe );
-  this.scene.add( this.depthLathe );
+  this.scene.add(this.depthLathe);
 }
 
 // INITIALISE EVENT HANDLING FUNCTION - (not looped)
@@ -643,8 +648,8 @@ Tunnel.prototype.handleEvents = function () {
   // https://threejs.org/docs/#api/en/core/EventDispatcher.addEventListener
 
   //.addEventListener ( type : String, listener : Function ) : null
-    //type - The type of event to listen to.
-    //listener - The function that gets called when the event is fired.
+  //type - The type of event to listen to.
+  //listener - The function that gets called when the event is fired.
 
 
   // When user resize window
@@ -658,18 +663,17 @@ Tunnel.prototype.handleEvents = function () {
     false
   );
 
-  document.body.addEventListener( 
-    'mousedown', 
-    this.onDocumentMouseDown.bind(this), 
-   // this.audioStart.bind(this),
-    false 
-    );
+  document.body.addEventListener(
+    'mousedown',
+    this.onDocumentMouseDown.bind(this),
+    false
+  );
 
   //document.querySelector('startButton').addEventListener('click', function() {
-      //var context = new AudioContext();
-      //context.resume();
-      //createTextures();
-   // });
+  //var context = new AudioContext();
+  //context.resume();
+  //createTextures();
+  // });
 
   // document.getElementById('startButton').addEventListener("buttonPress", function() {
   //   console.log("hi"); 
@@ -698,148 +702,140 @@ Tunnel.prototype.onResize = function () {
 //The function that allows for the stent interaction - (looped)
 //insert stent redraw command
 
-Tunnel.prototype.onDocumentMouseDown = function (event){
+Tunnel.prototype.onDocumentMouseDown = function (event) {
 
-this.audioStart();
-//getAudioContext().resume();
+  // var audioCtx = new AudioContext();
+  // audioCtx.resume();
 
-  //INTERACTION INTRODUCTION
-      //1. Add a "click to remove" statement
-      //2. Remove the existing stents
-      //3. Increase the segments and radii
-      //4. Redraw the stent with the new parameters
+  console.log(modeFlag);
+  console.log(clickFlag);
+  console.log(mouseFlag);
+  console.log(textRemoveFlag);
+  console.log(doneFlag);
+  console.log(blockageRadius);
 
-//      this.audioStart();
+  if (modeFlag == 0) {
+    //if (clickFlag == 1 && mouseFlag == 1) {
+      if (clickFlag == 1) {
+      // console.log("Hi, mouseFlag I'm here");
 
-//     var audioCtx = new AudioContext();
-//     audioCtx.resume();
-	
-    //RANDOM INTERACTIONS
-      modeFlag = Math.floor(Math.random(0, 1));
-      console.log(modeFlag);
+      if (textRemoveFlag == 0) {
 
-if (modeFlag == 0){
-if (clickFlag == 1 && mouseFlag == 1){
+        this.stentInstructionsText.style.opacity = "0.0";
+        textRemoveFlag = 1;
 
-console.log("Hi, mouseFlag I'm here");
-
-if (textRemoveFlag == 0) {
-
-//this.stentInstructionsText = document.querySelector('#stentInstructions');
-//this.stentInstructionsText.remove();
-this.stentInstructionsText.style.opacity = "0.0";
-textRemoveFlag = 1;
-
-}
-
-    this.scene.remove(this.plane);
-   // this.scene.remove(this.depthLathe);
-
-  if (blockageRadius<0.02){
-   // myAnimator.noUpdate();
-    this.tubeReflector.material.uniforms.speed.value = 0;
-
-    this.scene.remove( this.depthLathe );
-
-    blockageSegments += 1;
-    blockageRadius += 0.0009;
-
-    this.drawStent(blockageSegments, 0, 6.3, blockageRadius);
-
-  //RESUME COMMANDS:
-      //1. Get rid of lathes so they don't pop up randomly on the edges
-      //2. Resume conveyor belt animation
-
-    //console.log(latheRadius);
-
-  }else if (blockageRadius > 0.02) {
-   // this.scene.remove( this.lathe );
-    this.scene.remove(this.depthLathe);
-    this.tubeReflector.material.uniforms.speed.value = -0.1;
-    myAnimator.update();
-    doneFlag = 1;
-
-    //Reset the animated beginning and the pop up for the next round
-   // segments = 16;
-   // latheRadius = 0.021;
-
-   blockageSegments = 16;
-   blockageRadius = 0.021;
-   blockageCounter = 0;
-   clickFlag = 0;
-
-  }
-
-}
-} else if (modeFlag == 1){
-
-  if (clickFlag == 1 && mouseFlag == 1){
-
-    console.log("Hi, sphere mouseFlag I'm here");
-    
-    if (textRemoveFlag == 0) {
-    
-    //this.stentInstructionsText = document.querySelector('#stentInstructions');
-    //this.stentInstructionsText.remove();
-    this.stentInstructionsText.style.opacity = "0.0";
-    textRemoveFlag = 1;
-    
-    }
-    
         this.scene.remove(this.plane);
-       // this.scene.remove(this.depthLathe);
-    
-      if (obstructionShift<0.04){
+      }
+      // this.scene.remove(this.depthLathe);
+
+      if (blockageRadius < 0.02) {
+        // myAnimator.noUpdate();
+        this.tubeReflector.material.uniforms.speed.value = 0;
+
+        this.scene.remove(this.depthLathe);
+
+        blockageSegments += 1;
+        blockageRadius += 0.0009;
+        console.log(blockageRadius);
+
+        this.drawStent(blockageSegments, 0, 6.3, blockageRadius);
+
+      }
+       else if (blockageRadius >= 0.02) {
+        // console.log(blockageRadius);
+        console.log("Hi, mouseFlag I'm in the other one");
+        this.scene.remove(this.depthLathe);
+        this.tubeReflector.material.uniforms.speed.value = -0.1;
+        myAnimator.update();
+        doneFlag = 1;
+
+        blockageSegments = 16;
+        blockageRadius = 0.021;
+        blockageCounter = 0;
+        //clickFlag = 0;
+
+      }
+
+    }
+  } else if (modeFlag == 1) {
+
+    console.log(modeFlag);
+    console.log(clickFlag);
+    console.log(mouseFlag);
+    console.log(textRemoveFlag);
+    console.log(obstructionShift);
+
+    //if (clickFlag == 1 && mouseFlag == 1) {
+      if (clickFlag == 1) {
+      if (textRemoveFlag == 0) {
+
+        //this.stentInstructionsText = document.querySelector('#stentInstructions');
+        //this.stentInstructionsText.remove();
+        console.log("Hi, sphere mouseFlag I'm here");
+
+        this.obstructionInstructionsText.style.opacity = "0.0";
+        this.scene.remove(this.plane);
+
+
+        // this.stentInstructionsText.style.opacity = "0.0";
+        textRemoveFlag = 1;
+
+        // this.scene.remove(this.plane);
+
+      }
+
+      // this.scene.remove(this.depthLathe);
+
+      if (obstructionShift < 0.04) {
 
         this.scene.remove(this.obstructionMesh)
 
         //draw the mesh
-         this.obstructionGeometry = new THREE.SphereGeometry( 0.02, widthSegments, heightSegments );
-         this.obstructionMaterial = new THREE.MeshBasicMaterial({
-           color: new THREE.Color("hsl(129, 36%, 17%)"),
-           wireframe:false,
-         });
-         this.obstructionMesh = new THREE.Mesh( this.obstructionGeometry, this.obstructionMaterial);
-         this.obstructionMesh.position.z = 0.5;
-         this.obstructionMesh.position.x = obstructionShift;
-       
-         latheFlag = 1;            //this is to avoid redrawing every time it loops
-         blockageCounter += 1;     //adds time
-         obstructionShift+= 0.001;
-   
-         console.log(obstructionShift);
-         //heightSegments+=1; //increases height segments
-         //widthSegments+=1;  //increases width segments
-       
-         this.scene.add(this.obstructionMesh);
-    
-      //RESUME COMMANDS:
-          //1. Get rid of lathes so they don't pop up randomly on the edges
-          //2. Resume conveyor belt animation
-    
-        //console.log(latheRadius);
-    
-      }else if (obstructionShift > 0.04) {
-       // this.scene.remove( this.lathe );
+        this.obstructionGeometry = new THREE.SphereGeometry(0.02, widthSegments, heightSegments);
+        this.obstructionMaterial = new THREE.MeshStandardMaterial({
+          metalness: 0.2,
+          roughness: 0.5,
+          color: new THREE.Color("hsl(129, 36%, 17%)"),
+          wireframe: false,
+          side: THREE.DoubleSide,
+          alphaTest: 0.2,
+          transparent: false, //this gives the hazy effect when it hits the greys
+          map: textures.marble.texture,
+          //alphaMap: textures.stone.texture,
+        });
+        this.obstructionMesh = new THREE.Mesh(this.obstructionGeometry, this.obstructionMaterial);
+        this.obstructionMesh.position.z = 0.5;
+        this.obstructionMesh.position.x = obstructionShift;
+
+        latheFlag = 1; //this is to avoid redrawing every time it loops
+        blockageCounter += 1; //adds time
+        obstructionShift += 0.001;
+        widthSegments-=1;
+        heightSegments-=1;
+
+        this.scene.add(this.obstructionMesh);
+
+      } else if (obstructionShift > 0.034) {
+        // this.scene.remove( this.lathe );
         this.scene.remove(this.obstructionGeometry);
         this.tubeReflector.material.uniforms.speed.value = -0.1;
         myAnimator.update();
         doneFlag = 1;
-    
-        //Reset the animated beginning and the pop up for the next round
-       // segments = 16;
-       // latheRadius = 0.021;
-    
-       blockageSegments = 16;
-       blockageRadius = 0.021;
-       blockageCounter = 0;
-       clickFlag = 0;
-    
+
+        blockageSegments = 16;
+        blockageRadius = 0.021;
+        blockageCounter = 0;
+        //clickFlag = 0;
+
       }
 
-}
+    }
 
-}
+  }
+
+
+ // console.log(modeFlag);
+
 }
 
 // UPDATE THE MOUSE POSITIONS - (looped)
@@ -855,245 +851,262 @@ Tunnel.prototype.onMouseMove = function (e) {
 };
 
 function Particle(scene, burst) {
-        var radius = Math.random() * 0.003 + 0.0003;
-      
-        var changeRad = Math.random()*0.9;
-        var changeWidthSeg = Math.floor(Math.random()*20);
-      
-        //SphereGeometry(radius : Float, widthSegments : Integer, heightSegments : Integer, phiStart : Float, phiLength : Float, thetaStart : Float, thetaLength : Float)
-        var geom = new THREE.SphereGeometry(changeRad, changeWidthSeg, 32, 0, 6.3, 0, 3.1);
-        //var geom = cell.geometry;
-        var range = 234;   //range of colours allowed
-        var offset = burst ? 200 : 350;
-        var saturate = Math.floor(Math.random()*20 + 65);
-        var light = burst ? 20 : 56;
-        this.color = new THREE.Color("hsl(" + (Math.abs(Math.random() * range - 200)) + ","+saturate+"%,"+light+"%)");
-        var mat = new THREE.MeshPhongMaterial({
-          color: this.color,
-          map: textures.marble.texture
-          // shading: THREE.FlatShading
-        });
-        this.mesh = new THREE.Mesh(geom, mat);
-        this.mesh.scale.set(radius, radius, radius);
-        //this.mesh.radius = (Math.random()*0.4);
-        //this.mesh.widthSegments = (Math.random)*6;
-        this.mesh.scale.z += (Math.random()-0.5)*0.001;
-        this.mesh.position.set(0, 0, 1.5);
-        this.percent = burst ? 0.2 : Math.random();
-        this.burst = burst ? true : false;
-        this.offset = new THREE.Vector3((Math.random() - 0.5) * 0.025, (Math.random() - 0.5) * 0.025, 0);
-      
-        //This multiplied number determines the max value for speed
-        this.speed = Math.random() * 9; // + 0.0002;
-        if (this.burst) {
-          this.speed += 0.003;
-          this.mesh.scale.x *= 1.4;
-          this.mesh.scale.y *= 1.4;
-          this.mesh.scale.z *= 1.4;
-        }
-        this.rotate = new THREE.Vector3(-Math.random() * 0.1 + 0.01, 0, Math.random() * 0.01);
-      
-        this.pos = new THREE.Vector3(0, 0, 0);
+  var radius = Math.random() * 0.003 + 0.0003;
+
+  var changeRad = Math.random() * 0.9;
+  var changeWidthSeg = Math.floor(Math.random() * 20);
+
+  //SphereGeometry(radius : Float, widthSegments : Integer, heightSegments : Integer, phiStart : Float, phiLength : Float, thetaStart : Float, thetaLength : Float)
+  var geom = new THREE.SphereGeometry(changeRad, changeWidthSeg, 32, 0, 6.3, 0, 3.1);
+  //var geom = cell.geometry;
+  var range = 234; //range of colours allowed
+  var offset = burst ? 200 : 350;
+  var saturate = Math.floor(Math.random() * 20 + 65);
+  var light = burst ? 20 : 56;
+  this.color = new THREE.Color("hsl(" + (Math.abs(Math.random() * range - 200)) + "," + saturate + "%," + light + "%)");
+  var mat = new THREE.MeshPhongMaterial({
+    color: this.color,
+    map: textures.marble.texture
+    // shading: THREE.FlatShading
+  });
+  this.mesh = new THREE.Mesh(geom, mat);
+  this.mesh.scale.set(radius, radius, radius);
+  //this.mesh.radius = (Math.random()*0.4);
+  //this.mesh.widthSegments = (Math.random)*6;
+  this.mesh.scale.z += (Math.random() - 0.5) * 0.001;
+  this.mesh.position.set(0, 0, 1.5);
+  this.percent = burst ? 0.2 : Math.random();
+  this.burst = burst ? true : false;
+  this.offset = new THREE.Vector3((Math.random() - 0.5) * 0.025, (Math.random() - 0.5) * 0.025, 0);
+
+  //This multiplied number determines the max value for speed
+  this.speed = Math.random() * 9; // + 0.0002;
+  if (this.burst) {
+    this.speed += 0.003;
+    this.mesh.scale.x *= 1.4;
+    this.mesh.scale.y *= 1.4;
+    this.mesh.scale.z *= 1.4;
+  }
+  this.rotate = new THREE.Vector3(-Math.random() * 0.1 + 0.01, 0, Math.random() * 0.01);
+
+  this.pos = new THREE.Vector3(0, 0, 0);
 };
 
-Particle.prototype.update = function(tunnel) {
-      
-        this.percent += this.speed * (this.burst ? 1 : tunnel.speed);
-      
-        this.pos = tunnel.curve.getPoint(1 - (this.percent % 1)).add(this.offset);
-        this.mesh.position.x = this.pos.x;
-        this.mesh.position.y = this.pos.y;
-        this.mesh.position.z = this.pos.z;
-        this.mesh.rotation.x += this.rotate.x;
-        this.mesh.rotation.y += this.rotate.y;
-        this.mesh.rotation.z += this.rotate.z;
-      
-        this.mesh.position.z -= 0.02;
-      
+Particle.prototype.update = function (tunnel) {
+
+  this.percent += this.speed * (this.burst ? 1 : tunnel.speed);
+
+  this.pos = tunnel.curve.getPoint(1 - (this.percent % 1)).add(this.offset);
+  this.mesh.position.x = this.pos.x;
+  this.mesh.position.y = this.pos.y;
+  this.mesh.position.z = this.pos.z;
+  this.mesh.rotation.x += this.rotate.x;
+  this.mesh.rotation.y += this.rotate.y;
+  this.mesh.rotation.z += this.rotate.z;
+
+  this.mesh.position.z -= 0.02;
+
 };
 
 // RENDER FUNCTION - (looped)
 Tunnel.prototype.render = function () {
 
-  //SPACEBAR NOT PRESSED - DEFAULT STATE
-  // Update material offset
-  //this is the thing that makes the walls look like they're moving towards you
-  //this.updateMaterialOffset();
-
- // let stentFlag = 1;
-
-// if ((THREE.Clock() - clock) > 10){
- //}
-
   //this will get changed when the animation changes
   delta = clock.getDelta();
 
-	//var delta = clock.getDelta(); 
+  myAnimator.update(200 * delta);
 
- // console.log(clock.elapsedTime);
+  if (modeFlag == 0) {
 
-//	myAlphaAnimator.update(-(100 * delta));
-	myAnimator.update(200 * delta);
+    if (clock.getElapsedTime() - myTime > Tstart) {
+      //console.log("I'm in!")
 
-  //console.log(clock.getElapsedTime() - myTime);
- //console.log(myTime);
- //console.log(clock.getElapsedTime());
+      if (latheFlag == 0) {
 
+        this.scene.remove(this.depthLathe);
+        this.drawStent(blockageSegments, 0, 6.3, blockageRadius);
 
- if(modeFlag == 0){
+        //console.log("inside the drawStent")
 
-  if (clock.getElapsedTime() - myTime > Tstart){
-    //console.log("I'm in!")
+        latheFlag = 1; //this is to avoid redrawing every time it loops
+        blockageCounter += 1; //adds time
+        blockageSegments -= 1; //adds segments
+        blockageRadius -= 0.0009; //subtracts radius
 
-    if (latheFlag == 0){
-
-      this.scene.remove(this.depthLathe);
-      this.drawStent(blockageSegments, 0, 6.3, blockageRadius);
-
-      latheFlag = 1;            //this is to avoid redrawing every time it loops
-      blockageCounter += 1;     //adds time
-      blockageSegments -= 1;    //adds segments
-      blockageRadius -= 0.0009; //subtracts radius
-    }
-    
-    if (clock.getElapsedTime() - myTime > Tstart + blockageCounter){
-      if (blockageSegments>2){
-      latheFlag = 0;
       }
+
+      if (clock.getElapsedTime() - myTime > Tstart + blockageCounter) {
+        if ((blockageSegments > 2) && (clickFlag == 0)) {
+          latheFlag = 0;
+        }
+      }
+
+      if (blockageSegments == 2 && rectangleFlag == 1 && clickFlag == 0) {
+
+        this.tubeReflector.material.uniforms.speed.value = 0;
+
+        //The Dark Plane
+
+        this.planeGeometry = new THREE.PlaneGeometry(1, 1, 2, 2);
+        this.planeMaterial = new THREE.MeshBasicMaterial({
+          color: 0x000000,
+          transparent: true,
+          opacity: 0.8,
+          side: THREE.DoubleSide
+        });
+
+        this.plane = new THREE.Mesh(this.planeGeometry, this.planeMaterial);
+
+        this.plane.position.z = 0.03;
+        this.plane.position.x = 0;
+        this.plane.rotateZ(Math.PI / 2);
+
+        this.scene.add(this.plane);
+
+        //INSERT TEXT HERE
+        this.stentInstructionsText = document.getElementById("stentInstructions");
+        this.stentInstructionsText.style.opacity = "1.0";
+
+        //mouseFlag = 1;
+        //doneFlag = 1;
+        //latheFlag = 0;
+        rectangleFlag = 0;
+        clickFlag = 1;
+        textRemoveFlag = 0;        
+
+
+      }
+
+      //THIS IS WHERE THE CODE REFERENCES THE DONE FLAG SECTION
+
+      if (doneFlag == 1) {
+        //clock = clock;
+        myTime = clock.getElapsedTime();
+        doneFlag = 0;
+console.log("DONE WITH 0");
+        modeFlag = 1;
+        clickFlag = 0;
+        rectangleFlag = 1;
+
+        //Flag for next type of interaction
+        //modeFlag = Math.floor((Math.random() * 2));
+
+        //Time interval randomisation
+        //Tstart = TstartMin + (Math.random() * Trange);
+
+      }
+
     }
+  } else if (modeFlag == 1) {
 
-    if (blockageSegments == 2  && rectangleFlag == 1){
+    if (clock.getElapsedTime() - myTime > TobstructionStart) {
+      //console.log("I'm in!")
 
-      this.tubeReflector.material.uniforms.speed.value = 0;
+      if (latheFlag == 0) {
 
-      //The Dark Plane
+        this.scene.remove(this.obstructionMesh)
 
-      this.planeGeometry = new THREE.PlaneGeometry( 1, 1, 2, 2 );
-      this.planeMaterial = new THREE.MeshBasicMaterial( {
-        color: 0x000000,
-        transparent: true,
-        opacity: 0.8,
-        side: THREE.DoubleSide
-      } );
+        //draw the mesh
+        this.obstructionGeometry = new THREE.SphereGeometry(0.02, widthSegments, heightSegments);
+        this.obstructionMaterial = new THREE.MeshStandardMaterial({
+          metalness: 0.2,
+          roughness: 0.5,
+          color: new THREE.Color("hsl(129, 36%, 17%)"),
+          wireframe: false,
+          side: THREE.DoubleSide,
+          alphaTest: 0.2,
+          transparent: false, //this gives the hazy effect when it hits the greys
+          map: textures.marble.texture,
+          //alphaMap: textures.stone.texture,
+        });
+        this.obstructionMesh = new THREE.Mesh(this.obstructionGeometry, this.obstructionMaterial);
+        this.obstructionMesh.position.z = 0.5;
+        this.obstructionMesh.position.x = obstructionShift;
 
-      this.plane = new THREE.Mesh( this.planeGeometry, this.planeMaterial );
-     
-      this.plane.position.z = 0.03;
-      this.plane.position.x = 0;
-      this.plane.rotateZ( Math.PI / 2);
-     
-      this.scene.add(this.plane);
+        latheFlag = 1; //this is to avoid redrawing every time it loops
+        blockageCounter += 1; //adds time
+        obstructionShift -= 0.001;
 
-      //INSERT TEXT HERE
-      this.stentInstructionsText = document.getElementById("stentInstructions");
-      //this.instructionPopUp.add(),
-      this.stentInstructionsText.style.opacity = "1.0";
+        //console.log(obstructionShift);
+        //heightSegments+=1; //increases height segments
+        //widthSegments+=1;  //increases width segments
 
-      mouseFlag = 1;
-      doneFlag = 1;
-      latheFlag = 0;
-      rectangleFlag = 1;
-      clickFlag = 1;
+        this.scene.add(this.obstructionMesh);
 
+      }
 
-    }
+      if (clock.getElapsedTime() - myTime > TobstructionStart + blockageCounter) {
+        if (obstructionShift > 0.01 && clickFlag == 0) {
+          latheFlag = 0;
+        }
+      }
 
-    //THIS IS WHERE THE CODE REFERENCES THE DONE FLAG SECTION
-    
-    if (doneFlag == 1){
-      //clock = clock;
-      myTime = clock.getElapsedTime();
-      textRemoveFlag = 0;
-      doneFlag = 0;
+      if (obstructionShift <= 0.01 && rectangleFlag == 1 && clickFlag == 0) {
+
+        this.tubeReflector.material.uniforms.speed.value = 0;
+
+        //The Dark Plane
+
+        this.planeGeometry = new THREE.PlaneGeometry(1, 1, 2, 2);
+        this.planeMaterial = new THREE.MeshBasicMaterial({
+          color: 0x000000,
+          transparent: true,
+          opacity: 0.8,
+          side: THREE.DoubleSide
+        });
+
+        this.plane = new THREE.Mesh(this.planeGeometry, this.planeMaterial);
+
+        this.plane.position.z = 0.03;
+        this.plane.position.x = 0;
+        this.plane.rotateZ(Math.PI / 2);
+
+        this.scene.add(this.plane);
+
+        //INSERT TEXT HERE
+        this.obstructionInstructionsText = document.getElementById("obstructionInstructions");
+        this.obstructionInstructionsText.style.opacity = "1.0";
+
+        //mouseFlag = 1;
+        //latheFlag = 0;
+        rectangleFlag = 0;
+        clickFlag = 1;
+        textRemoveFlag = 0;
+
+      }
+
+      //THIS IS WHERE THE CODE REFERENCES THE DONE FLAG SECTION
+
+      if (doneFlag == 1) {
+        //clock = clock;
+        this.scene.remove(this.obstructionMesh);
+        myTime = clock.getElapsedTime();
+        doneFlag = 0;
+
+         modeFlag = 0;
+
+         rectangleFlag = 1;
+
+console.log("DONE WITH 1");
+
+        clickFlag = 0;
+
+        widthSegments = 23;   //new
+        heightSegments = 23;  //new
+
+        //myAnimator.update(200*delta);   //new
+
+        //Flag for next type of interaction
+        //modeFlag = Math.floor((Math.random() * 2));
+
+        //Flag to time the next interaction
+       // TobstructionStart = TobstructionStartMin + (Math.random() * TobstructionRange);
+
+      }
+
     }
 
   }
-} else if (modeFlag == 1){
-
-  if (clock.getElapsedTime() - myTime > Tstart){
-    //console.log("I'm in!")
-
-    if (latheFlag == 0){
-
-      this.scene.remove(this.obstructionMesh)
-
-     //draw the mesh
-      this.obstructionGeometry = new THREE.SphereGeometry( 0.02, widthSegments, heightSegments );
-      this.obstructionMaterial = new THREE.MeshBasicMaterial({
-        color: new THREE.Color("hsl(129, 36%, 17%)"),
-        wireframe:false,
-        flatShading:true,
-      });
-      this.obstructionMesh = new THREE.Mesh( this.obstructionGeometry, this.obstructionMaterial);
-      this.obstructionMesh.position.z = 0.5;
-      this.obstructionMesh.position.x = obstructionShift;
-    
-      latheFlag = 1;            //this is to avoid redrawing every time it loops
-      blockageCounter += 1;     //adds time
-      obstructionShift-= 0.001;
-
-      console.log(obstructionShift);
-      //heightSegments+=1; //increases height segments
-      //widthSegments+=1;  //increases width segments
-    
-      this.scene.add(this.obstructionMesh);
-
-    }
-    
-    if (clock.getElapsedTime() - myTime > Tstart + blockageCounter){
-      if (obstructionShift>0.01){
-      latheFlag = 0;
-      }
-    }
-
-    if (obstructionShift<=0.01  && rectangleFlag == 1){
-
-      this.tubeReflector.material.uniforms.speed.value = 0;
-
-      //The Dark Plane
-
-      this.planeGeometry = new THREE.PlaneGeometry( 1, 1, 2, 2 );
-      this.planeMaterial = new THREE.MeshBasicMaterial( {
-        color: 0x000000,
-        transparent: true,
-        opacity: 0.8,
-        side: THREE.DoubleSide
-      } );
-
-      this.plane = new THREE.Mesh( this.planeGeometry, this.planeMaterial );
-     
-      this.plane.position.z = 0.03;
-      this.plane.position.x = 0;
-      this.plane.rotateZ( Math.PI / 2);
-     
-      this.scene.add(this.plane);
-
-      //INSERT TEXT HERE
-      this.stentInstructionsText = document.getElementById("stentInstructions");
-      //this.instructionPopUp.add(),
-      this.stentInstructionsText.style.opacity = "1.0";
-
-      mouseFlag = 1;
-      doneFlag = 1;
-      latheFlag = 0;
-      rectangleFlag = 1;
-      clickFlag = 1;
-
-
-    }
-
-    //THIS IS WHERE THE CODE REFERENCES THE DONE FLAG SECTION
-    
-    if (doneFlag == 1){
-      //clock = clock;
-      myTime = clock.getElapsedTime();
-      textRemoveFlag = 0;
-      doneFlag = 0;
-    }
-
-  }
-
-}
 
   //console.log(clock.getElapsedTime() - myTime);
 
@@ -1159,7 +1172,7 @@ Tunnel.prototype.updateCameraPosition = function () {
 
   // target.x = ( 1 - this.mouse.target.x ) * 0.08;
   // target.y = ( 1 - this.mouse.target.y ) * 0.08;
-  
+
   // this.camera.rotation.x += 0.5 * ( target.y - this.camera.rotation.x );
   // this.camera.rotation.y += 0.5 * ( target.x - this.camera.rotation.y );
 
@@ -1167,7 +1180,7 @@ Tunnel.prototype.updateCameraPosition = function () {
 
 // PROBE UPDATE FUNCTION - LOOPED
 
-Tunnel.prototype.probeMotion = function (){
+Tunnel.prototype.probeMotion = function () {
 
   this.particleLight.position.x = THREE.Math.mapLinear(-this.mouse.target.x, -1, 1, -0.011, 0.011);
   this.particleLight.position.y = THREE.Math.mapLinear(this.mouse.target.y, -1, 1, -0.011, 0.011);
@@ -1182,7 +1195,7 @@ Tunnel.prototype.probeMotion = function (){
   this.particleLight.rotation.y += 0.06;
 
   this.probeHull.rotation.z += 0.2;
-  this.probeHull.rotation.x += 0.002;  
+  this.probeHull.rotation.x += 0.002;
   //particleLight.rotation.z += 0.06;
 
   //console.log(this.probeHull.rotation.x);
@@ -1195,7 +1208,7 @@ Tunnel.prototype.setColor = function () {
 
   this.tubeMesh = new THREE.Mesh(this.tubeGeometry, this.tubeMaterial);
   this.tubeReflector = new THREE.Mesh(this.tubeReflectorGeometry, this.tubeReflectorMaterial);
-  this.lathe = new THREE.Mesh( this.latheGeometry, this.latheMaterial );
+  this.lathe = new THREE.Mesh(this.latheGeometry, this.latheMaterial);
   this.scene.remove(this.lathe);
 
   //MOUSE MOVE
@@ -1229,9 +1242,9 @@ Tunnel.prototype.setColor = function () {
     let ydist = centerBoxBoundary - Math.abs(this.mouse.target.y);
     let dist = Math.min(xdist, ydist);
 
-  let intensityShiftInner = (intensityStart + (intensityMid - intensityStart) / (centerBoxBoundary - centerPoint) * ((centerBoxBoundary - centerPoint) - dist1));
+    let intensityShiftInner = (intensityStart + (intensityMid - intensityStart) / (centerBoxBoundary - centerPoint) * ((centerBoxBoundary - centerPoint) - dist1));
 
-  this.tubeReflector.material.uniforms.intensity.value = (intensityShiftInner);
+    this.tubeReflector.material.uniforms.intensity.value = (intensityShiftInner);
 
   } else {
 
