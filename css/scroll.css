@@ -18,7 +18,7 @@
 
 body {
 	--text-color: #f0f0f0;
-	background-image: url("/img/demo1/OpUSBackground.jpg");
+	background-image: url("./img/demo1/OpUSBackground.jpg");
 	  /* Set a specific height */
 	  min-height: 500px;
 
