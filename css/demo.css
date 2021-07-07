@@ -100,10 +100,6 @@ body {
 	text-align: center;
 }
 
-#popUpBackground {
-	background-color: black;
-  }
-
 #welcomeHeader {
 	color: #9b9b9b;
 	font-size: 40px;
@@ -150,7 +146,6 @@ a {
 	color: #ddd;
 	color: var(--link-color);
 	outline: none;
-	border-bottom: 2px solid;
 	padding: 0 0 0.15em;
 }
 
