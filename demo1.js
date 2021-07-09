@@ -278,29 +278,31 @@ Tunnel.prototype.init = function () {
 
 Tunnel.prototype.audioStart = function () {
 
-  const listener = new THREE.AudioListener();
-  this.camera.add(listener);
+  const listener0 = new THREE.AudioListener();
+  const listener1 = new THREE.AudioListener();
+  this.camera.add(listener0);
+  this.camera.add(listener1);
 
   const audioLoader = new THREE.AudioLoader();
 
-  this.frequencyShift = new THREE.PositionalAudio(listener);
+  this.frequencyShift = new THREE.PositionalAudio(listener0);
 
-  this.oscillator = listener.context.createOscillator();
+  this.oscillator = listener0.context.createOscillator();
   this.oscillator.type = 'sine';
   this.oscillator.frequency.setValueAtTime(200, this.frequencyShift.context.currentTime);
   this.oscillator.start(0);
 
   this.frequencyShift.setNodeSource(this.oscillator);
   this.frequencyShift.setRefDistance(20);
-  this.frequencyShift.setVolume(0.2);
+  this.frequencyShift.setVolume(0.01);
 
-  const sound = new THREE.Audio(listener);
+  const sound = new THREE.Audio(listener1);
 
-  audioLoader.load('sounds/X3Loud2.mp3', function (buffer) {
+  audioLoader.load('sounds/X3Loud8_denoised.wav', function (buffer) {
 
     sound.setBuffer(buffer);
     sound.setLoop(true);
-    sound.setVolume(8);
+    sound.setVolume(1);
     sound.play();
 
   });
