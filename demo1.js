@@ -810,8 +810,8 @@ Tunnel.prototype.onDocumentMouseDown = function (event) {
         latheFlag = 1; //this is to avoid redrawing every time it loops
         blockageCounter += 1; //adds time
         obstructionShift += 0.001;
-        widthSegments-=1;
-        heightSegments-=1;
+        //widthSegments-=1;
+        //heightSegments-=1;
 
         this.scene.add(this.obstructionMesh);
 
