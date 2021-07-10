@@ -1,15 +1,3 @@
-//IMPORTS
-
-//import * as THREE from './js/vendors/three.module.js';
-//import Stats from './js/stats.module.js';
-//import {
-//  GUI
-//} from './build/dat.gui.module.js';
-//import { OrbitControls } from './js/OrbitControls.js';
-// import { HDRCubeTextureLoader } from './js/HDRCubeTextureLoader.js';
-// import { RGBMLoader } from './js/RGBMLoader.js';
-// import { DebugEnvironment } from './js/DebugEnvironment.js';
-
 //DIMENSION VARIABLES
 
 // Get window dimension
@@ -18,18 +6,15 @@ var wh = window.innerHeight;
 var ww2 = ww * 0.5,
   wh2 = wh * 0.5; // Save half window dimension
 
-var delta;
-
-var myAnimator;
-
 // TEXTURE
+var myAnimator;
+var delta;
 
 // CLOCK
 
 var clock = new THREE.Clock();
 var myTime = clock.getElapsedTime();
 var time = 0;
-//var startTimeFlag = 0;
 
 // TUNNEL VARIABLES
 
@@ -130,13 +115,13 @@ var latheFlag = 0;
 var clickFlag = 0;
 var textRemoveFlag = 0;
 
-var Tstart = 5;
-var TstartMin = 15;
-var Trange = 30; //stent can show up between 15 and 45 seconds (15+30 = 45)
+var Tstart = 10;
+var TstartMin = 10;
+var Trange = 20; //stent can show up between 15 and 45 seconds (15+30 = 45)
 
-var TobstructionStart = 5;
-var TobstructionStartMin = 5;
-var TobstructionRange = 10; //obstruction can show up between 5 and 15 sec
+var TobstructionStart = 10;
+var TobstructionStartMin = 10;
+var TobstructionRange = 20; //obstruction can show up between 5 and 15 sec
 
 
 //OBSTRUCTION STUFF
@@ -1001,7 +986,7 @@ console.log("DONE WITH 0");
         modeFlag = Math.floor((Math.random() * 2));
 
         //Time interval randomisation
-        //Tstart = TstartMin + (Math.random() * Trange);
+        Tstart = TstartMin + (Math.random() * Trange);
 
       }
 
@@ -1106,7 +1091,7 @@ console.log("DONE WITH 0");
         modeFlag = Math.floor((Math.random() * 2));
 
         //Flag to time the next interaction
-       // TobstructionStart = TobstructionStartMin + (Math.random() * TobstructionRange);
+        TobstructionStart = TobstructionStartMin + (Math.random() * TobstructionRange);
 
       }
 
