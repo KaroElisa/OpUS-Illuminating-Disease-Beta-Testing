@@ -24,9 +24,12 @@ var myAnimator;
 
 // TEXTURE
 
+// CLOCK
+
 var clock = new THREE.Clock();
-var myTime = clock.getElapsedTime();
+var myTime = 50000000;
 var time = 0;
+var startTimeFlag = 0;
 
 // TUNNEL VARIABLES
 
@@ -706,6 +709,12 @@ Tunnel.prototype.onDocumentMouseDown = function (event) {
 
   // var audioCtx = new AudioContext();
   // audioCtx.resume();
+  
+  if(startTimeFlag == 0){
+    myTime = clock.getElapsedTime();
+    startTimeFlag = 1;
+  }
+
 
   console.log(modeFlag);
   console.log(clickFlag);
