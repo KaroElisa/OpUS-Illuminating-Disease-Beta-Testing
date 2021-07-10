@@ -27,9 +27,9 @@ var myAnimator;
 // CLOCK
 
 var clock = new THREE.Clock();
-var myTime = 50000000;
+var myTime = clock.getElapsedTime();
 var time = 0;
-var startTimeFlag = 0;
+//var startTimeFlag = 0;
 
 // TUNNEL VARIABLES
 
@@ -710,10 +710,10 @@ Tunnel.prototype.onDocumentMouseDown = function (event) {
   // var audioCtx = new AudioContext();
   // audioCtx.resume();
   
-  if(startTimeFlag == 0){
-    myTime = clock.getElapsedTime();
-    startTimeFlag = 1;
-  }
+//   if(startTimeFlag == 0){
+//     myTime = clock.getElapsedTime();
+//     startTimeFlag = 1;
+//   }
 
 
   console.log(modeFlag);
