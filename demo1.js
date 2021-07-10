@@ -130,11 +130,11 @@ var latheFlag = 0;
 var clickFlag = 0;
 var textRemoveFlag = 0;
 
-var Tstart = 45;
+var Tstart = 5;
 var TstartMin = 15;
 var Trange = 30; //stent can show up between 15 and 45 seconds (15+30 = 45)
 
-var TobstructionStart = 45;
+var TobstructionStart = 5;
 var TobstructionStartMin = 5;
 var TobstructionRange = 10; //obstruction can show up between 5 and 15 sec
 
