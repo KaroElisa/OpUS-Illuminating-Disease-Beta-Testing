@@ -993,12 +993,12 @@ Tunnel.prototype.render = function () {
         myTime = clock.getElapsedTime();
         doneFlag = 0;
 console.log("DONE WITH 0");
-        modeFlag = 1;
+        //modeFlag = 1;
         clickFlag = 0;
         rectangleFlag = 1;
 
         //Flag for next type of interaction
-        //modeFlag = Math.floor((Math.random() * 2));
+        modeFlag = Math.floor((Math.random() * 2));
 
         //Time interval randomisation
         //Tstart = TstartMin + (Math.random() * Trange);
@@ -1092,12 +1092,9 @@ console.log("DONE WITH 0");
         myTime = clock.getElapsedTime();
         doneFlag = 0;
 
-         modeFlag = 0;
+         //modeFlag = 0;
 
-         rectangleFlag = 1;
-
-console.log("DONE WITH 1");
-
+        rectangleFlag = 1;
         clickFlag = 0;
 
         widthSegments = 23;   //new
@@ -1106,7 +1103,7 @@ console.log("DONE WITH 1");
         //myAnimator.update(200*delta);   //new
 
         //Flag for next type of interaction
-        //modeFlag = Math.floor((Math.random() * 2));
+        modeFlag = Math.floor((Math.random() * 2));
 
         //Flag to time the next interaction
        // TobstructionStart = TobstructionStartMin + (Math.random() * TobstructionRange);
